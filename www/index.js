@@ -1,4 +1,3 @@
-import ApplicationView from './ApplicationView'
 
 stylify({
   'body': {

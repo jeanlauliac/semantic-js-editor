@@ -3,6 +3,7 @@ import StyleExtractor from './build/StyleExtractor'
 import babelify from 'babelify'
 import browserify from 'browserify'
 import clc from 'cli-color'
+import moment from 'moment'
 import nopt from 'nopt'
 import path from 'path'
 import through from 'through2'
@@ -10,7 +11,7 @@ import watchify from 'watchify'
 
 var Folders = {
   OUTPUT: 'output',
-  SOURCE: 'source',
+  WWW: 'www',
 }
 
 var BrowserifyOpts = {
@@ -20,8 +21,15 @@ var BrowserifyOpts = {
   packageCache: {},
 }
 
+var log = (() => {
+  return (message) => {
+    let date = clc.blackBright(moment().format('HH:mm:ss'))
+    console.error(`[${date}] ${message}`)
+  }
+})()
+
 process.on('uncaughtException', (err) => {
-  console.error(clc.red('build: *** Uncaught exception!'))
+  log(clc.red('*** Uncaught exception!'))
   console.error(err.stack)
   process.exit(1)
 })
@@ -29,10 +37,12 @@ process.on('uncaughtException', (err) => {
 function browseristyle(filePath) {
   return new Emitter((inform) => {
     var styleExtractor = new StyleExtractor()
-    var jsBundler = watchify(browserify(BrowserifyOpts)
-      .transform(babelify)
-      //.transform(styleExtractor.transform)
-      .require(filePath, {entry: true}))
+    var jsBundler = watchify(
+      browserify(BrowserifyOpts)
+        .transform(babelify)
+        //.transform(styleExtractor.transform)
+        .require(filePath, {entry: true})
+      )
     var buildBundles = () => {
       var css = through()
       var js = jsBundler.bundle().on('end', () => {
@@ -43,29 +53,63 @@ function browseristyle(filePath) {
     jsBundler.on('update', buildBundles)
     buildBundles()
     return () => {
-      jsBundler.off('update', buildBundles)
+      jsBundler.removeListener('update', buildBundles)
+      setTimeout(() => {
+        // Need to do that async.
+        // See https://github.com/substack/watchify/issues/22#issuecomment-67673776
+        jsBundler.close()
+      }, 1000)
+    }
+  })
+}
+
+function streamToFile(stream, filePath) {
+  return stream.on('error', (error) => {
+    log(clc.red(`*** Failed to generate ${filePath}`))
+    console.error(error.stack)
+  }).pipe(fs.createWriteStream(filePath))
+    .on('error', (error) => {
+      log(clc.red(`*** Failed to write file ${filePath}`))
+      console.error(error.stack)
+    })
+    .on('finish', () => {
+      log(`Wrote ${clc.blue(filePath)}`)
+    })
+}
+
+function copying(sourcePath, destPath) {
+  return new Emitter((inform) => {
+    var copy = () => {
+      return streamToFile(fs.createReadStream(sourcePath), destPath)
+    }
+    var watcher = fs.watch(sourcePath, () => {
+      inform(copy())
+    })
+    inform(copy())
+    return () => {
+      watcher.close()
     }
   })
 }
 
 (() => {
-  var opts = nopt({once: Boolean})
-  var sub = browseristyle('./' + path.join(Folders.SOURCE, 'index.js'))
-    .subscribe(({js, css}) => {
-      js.on('error', (error) => {
-          console.error(clc.red('build: *** browserify failed'))
-          console.error(error.stack)
-        })
-        .on('end', () => {console.error(clc.greenBright('built: bundle.js'))})
-        .pipe(fs.createWriteStream(path.join(Folders.OUTPUT, 'bundle.js')))
-      css.on('error', (error) => {
-          console.error(clc.red('build: *** stylify failed'))
-          console.error(error.stack)
-        })
-        .on('end', () => {console.error(clc.greenBright('built: bundle.css'))})
-        .pipe(fs.createWriteStream(path.join(Folders.OUTPUT, 'bundle.css')))
-      if (opts.once) {
-        sub.remove()
-      }
-    })
+  let opts = nopt({once: Boolean})
+  let jsEntryPath = './' + path.join(Folders.WWW, 'index.js')
+  let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js');
+  let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css');
+  let sub = browseristyle(jsEntryPath).subscribe(({js, css}) => {
+    streamToFile(js, jsBundlePath)
+    streamToFile(css, cssBundlePath)
+    if (opts.once) {
+      sub.remove()
+    }
+  })
+  let sub2 = copying(
+    path.join(Folders.WWW, 'index.html'),
+    path.join(Folders.OUTPUT, 'index.html')
+  ).subscribe(() => {
+    if (opts.once) {
+      sub2.remove()
+    }
+  })
 })()
