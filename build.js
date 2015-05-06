@@ -1,9 +1,14 @@
+#!/usr/bin/env node_modules/.bin/babel-node
+
 import Emitter from './build/Emitter'
 import StyleExtractor from './build/StyleExtractor'
 import babelify from 'babelify'
 import browserify from 'browserify'
 import clc from 'cli-color'
+import http from 'http'
+import invariant from './lib/utils/invariant'
 import moment from 'moment'
+import nodeStatic from 'node-static'
 import nopt from 'nopt'
 import path from 'path'
 import through from 'through2'
@@ -24,7 +29,7 @@ var BrowserifyOpts = {
 var log = (() => {
   return (message) => {
     let date = clc.blackBright(moment().format('HH:mm:ss'))
-    console.error(`[${date}] ${message}`)
+    console.error(`${date}  ${message}`)
   }
 })()
 
@@ -40,7 +45,7 @@ function browseristyle(filePath) {
     var jsBundler = watchify(
       browserify(BrowserifyOpts)
         .transform(babelify)
-        //.transform(styleExtractor.transform)
+        .transform(styleExtractor.getTransform())
         .require(filePath, {entry: true})
       )
     var buildBundles = () => {
@@ -50,7 +55,11 @@ function browseristyle(filePath) {
       })
       inform({js, css})
     }
-    jsBundler.on('update', buildBundles)
+    jsBundler.on('update', (paths) => {
+      log('Changed: ' + paths.map((filePath) =>
+        clc.green(path.relative('.', filePath))).join(', '))
+      buildBundles()
+    })
     buildBundles()
     return () => {
       jsBundler.removeListener('update', buildBundles)
@@ -83,12 +92,27 @@ function copying(sourcePath, destPath) {
       return streamToFile(fs.createReadStream(sourcePath), destPath)
     }
     var watcher = fs.watch(sourcePath, () => {
+      log('Changed: ' + clc.green(sourcePath))
       inform(copy())
     })
     inform(copy())
     return () => {
       watcher.close()
     }
+  })
+}
+
+function serving(rootPath) {
+  return new Emitter((inform) => {
+    let server = new nodeStatic.Server(rootPath)
+    http.createServer((request, response) => {
+      request.on('end', () => {
+        server.serve(request, response)
+      }).resume()
+    }).listen(8080).on('listening', () => {
+      log(`Listening on port ${clc.magenta(8080)}`)
+    })
+    return () => {invariant(false, 'unsupported')}
   })
 }
 
@@ -112,4 +136,7 @@ function copying(sourcePath, destPath) {
       sub2.remove()
     }
   })
+  if (!opts.once) {
+    let sub3 = serving(Folders.OUTPUT).subscribe(() => {})
+  }
 })()

@@ -1,4 +1,3 @@
-
 stylify({
   'body': {
     fontFamily: "'Open Sans', sans-serif",

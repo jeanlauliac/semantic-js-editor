@@ -1,13 +1,12 @@
-var Absurd = require('absurd')
+import Absurd from 'absurd'
 import {Readable} from 'stream'
-var falafel = require('falafel')
-var fs = require('fs')
-var path = require('path')
-var through = require('through2')
+import falafel from 'falafel'
+import fs from 'fs'
+import path from 'path'
+import through from 'through2'
 
 export default class StyleExtractor {
   constructor() {
-    this.transform = this.transform.bind(this)
     this.clear()
   }
 
@@ -36,15 +35,20 @@ export default class StyleExtractor {
     return stream
   }
 
-  transform(filename) {
+  getTransform() {
+    return this._transform.bind(this)
+  }
+
+  _transform(filename) {
     var classPrefix = path.basename(filename).replace('.', '_') + '__'
     var source = ''
     var _this = this
-    return through(function write(data) {
+    return through(function (data, enc, callback) {
       source += data
-    }, function end() {
+      callback()
+    }, function (callback) {
       var fileSpecs = _this._fileSpecs[filename] = []
-      var result = falafel(source, function (node) {
+      var result = falafel(source, (node) => {
         if (!(
           node.type === 'CallExpression' &&
           node.callee.type === 'Identifier' &&
@@ -53,14 +57,15 @@ export default class StyleExtractor {
           return
         }
         var obj = eval('(' + node.arguments[0].source() + ')')
-        var meta = stylifyImpl(obj, {}, function (className) {
-          return classPrefix + className
-        })
+        var meta = stylifyImpl(obj, {}, (className) =>
+          classPrefix + className
+        )
         fileSpecs.push(meta.spec)
         node.update(JSON.stringify(meta.classMap))
       }).toString()
-      this.queue(result)
-      this.queue(null)
+      this.push(result)
+      this.push(null)
+      callback()
     })
   }
 }
@@ -101,5 +106,5 @@ function stylifyImpl(spec, classMap, gen) {
     objectAssign(classMap, sub.classMap)
     retSpec[newField] = sub.spec
   }
-  return { spec: retSpec, classMap: classMap }
+  return {spec: retSpec, classMap}
 }
