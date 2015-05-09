@@ -121,9 +121,14 @@ function serving(rootPath) {
   let jsEntryPath = './' + path.join(Folders.WWW, 'index.js')
   let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js');
   let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css');
-  let sub = browseristyle(jsEntryPath).subscribe(({js, css}) => {
-    streamToFile(js, jsBundlePath)
-    streamToFile(css, cssBundlePath)
+  let sub = new Emitter((inform) => {
+    let sub = browseristyle(jsEntryPath).subscribe(({js, css}) => {
+      streamToFile(js, jsBundlePath)
+      streamToFile(css, cssBundlePath)
+      inform()
+    })
+    return () => {sub.remove()}
+  }).subscribe(() => {
     if (opts.once) {
       sub.remove()
     }
@@ -137,6 +142,6 @@ function serving(rootPath) {
     }
   })
   if (!opts.once) {
-    let sub3 = serving(Folders.OUTPUT).subscribe(() => {})
+    serving(Folders.OUTPUT).subscribe(() => {})
   }
 })()

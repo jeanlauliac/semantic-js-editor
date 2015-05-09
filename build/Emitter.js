@@ -9,8 +9,9 @@ export default class Emitter {
   }
 
   subscribe(callback) {
+    invariant(typeof callback === 'function', 'callback is not a function')
     var key = 'subscriber_' + this._nextKey++
-    this._subs[key] = callback;
+    this._subs[key] = callback
     if (++this._subCount === 1) {
       this._teardown = this._setup(this._inform.bind(this))
       invariant(
