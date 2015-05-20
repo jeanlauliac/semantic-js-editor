@@ -7,9 +7,10 @@ import Unit from '../lib/ast/Unit'
 import React from 'react'
 
 stylify({
-  'body': {
+  'body, pre': {
     fontFamily: "'Open Sans', sans-serif",
-    fontSize: '100%/1.4',
+    fontSize: '100%',
+    lineHeight: '1.6',
     margin: 0,
     padding: 0,
   },
@@ -25,6 +26,11 @@ function exampleUnit() {
         left: new Literal(42),
         right: new Literal(10),
         type: BinaryOpType.ADD,
+      }),
+      new BinaryOp({
+        left: new Literal(100),
+        right: new Literal(81),
+        type: BinaryOpType.SUBTRACT,
       })
     ])
   })
