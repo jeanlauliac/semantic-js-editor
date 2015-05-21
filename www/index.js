@@ -7,12 +7,15 @@ import Unit from '../lib/ast/Unit'
 import React from 'react'
 
 stylify({
-  'body, pre': {
-    fontFamily: "'Open Sans', sans-serif",
+  'body': {
+    fontFamily: "monospace",
     fontSize: '100%',
     lineHeight: '1.6',
     margin: 0,
     padding: 0,
+  },
+  'pre': {
+    lineHeight: '1.6',
   },
   'h1, h2, h3, h4, h5, h6': {
     fontWeight: 'normal',
@@ -24,8 +27,12 @@ function exampleUnit() {
     statements: new Immutable.List([
       new BinaryOp({
         left: new Literal(42),
-        right: new Literal(10),
-        type: BinaryOpType.ADD,
+        right: new BinaryOp({
+          left: new Literal(10),
+          right: new Literal(32),
+          type: BinaryOpType.ADD,
+        }),
+        type: BinaryOpType.MULTIPLY,
       }),
       new BinaryOp({
         left: new Literal(100),
