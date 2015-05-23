@@ -47,5 +47,25 @@ function exampleUnit() {
 ;(function main() {
   let root = document.getElementById('root')
   JSEditorStore.setUnit(exampleUnit())
+  document.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented) {
+      return
+    }
+    switch (event.keyIdentifier) {
+      case 'Right':
+        JSEditorStore.moveCaret(0, 1)
+        break
+      case 'Left':
+        JSEditorStore.moveCaret(0, -1)
+        break
+      case 'Down':
+        JSEditorStore.moveCaret(1, 0)
+        break
+      case 'Up':
+        JSEditorStore.moveCaret(-1, 0)
+        break
+    }
+    event.preventDefault()
+  }, false)
   React.render(<JSEditorContainer />, root)
 })()
