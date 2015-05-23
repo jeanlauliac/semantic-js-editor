@@ -1,7 +1,8 @@
 import BinaryOp from '../lib/ast/BinaryOp'
 import BinaryOpType from '../lib/ast/BinaryOpType'
 import Immutable from 'immutable'
-import JSEditor from '../lib/JSEditor'
+import JSEditorContainer from './JSEditorContainer'
+import JSEditorStore from './JSEditorStore'
 import Literal from '../lib/ast/Literal'
 import Unit from '../lib/ast/Unit'
 import React from 'react'
@@ -44,7 +45,7 @@ function exampleUnit() {
 }
 
 ;(function main() {
-  var root = document.getElementById('root')
-  var unit = exampleUnit()
-  React.render(<JSEditor unit={unit} />, root)
+  let root = document.getElementById('root')
+  JSEditorStore.setUnit(exampleUnit())
+  React.render(<JSEditorContainer />, root)
 })()
