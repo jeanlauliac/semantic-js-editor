@@ -64,6 +64,8 @@ function exampleUnit() {
       case 'Up':
         JSEditorStore.moveCaret(-1, 0)
         break
+      default:
+        return
     }
     event.preventDefault()
   }, false)

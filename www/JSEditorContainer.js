@@ -22,7 +22,7 @@ var JSEditorContainer = React.createClass({
   statics: {
     calculateState() {
       return {
-        caret: JSEditorStore.getCaret(),
+        caretState: JSEditorStore.getCaretState(),
         lines: JSEditorStore.getLines(),
       }
     },
@@ -31,7 +31,7 @@ var JSEditorContainer = React.createClass({
   render() {
     return (
       <JSEditor
-        caret={this.state.caret}
+        caretState={this.state.caretState}
         lines={this.state.lines}
       />
     );

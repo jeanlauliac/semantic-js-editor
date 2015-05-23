@@ -1,4 +1,5 @@
 import {EventEmitter} from 'events'
+import Immutable from 'immutable'
 import PrintContext from '../lib/PrintContext'
 import nodeToLines from '../lib/nodeToLines'
 
@@ -6,16 +7,35 @@ function clamp(number, min, max) {
   return Math.min(Math.max(number, min), max);
 }
 
+class CodePosition extends Immutable.Record({line: 1, column: 1}) {
+  constructor(line, column) {
+    super({line, column})
+  }
+}
+
+class CaretState extends Immutable.Record({
+  position: new CodePosition(1, 1),
+  visible: true,
+}) {}
+
 class JSEditorStore extends EventEmitter {
   constructor() {
     super()
-    this._caret = {column: 3, line: 2}
+    this._caretState = new CaretState()
     this._lines = []
     this._unit = undefined;
+    this._caretTick(true);
   }
 
-  getCaret() {
-    return this._caret
+  _caretTick(visible) {
+    this._caretState = this._caretState.set('visible', visible)
+    clearTimeout(this._caretTimeout)
+    this._caretTimeout = setTimeout(this._caretTick.bind(this, !visible), 700)
+    this.emit('change')
+  }
+
+  getCaretState() {
+    return this._caretState
   }
 
   getLines() {
@@ -27,10 +47,15 @@ class JSEditorStore extends EventEmitter {
   }
 
   moveCaret(lines, columns) {
-    this._caret = {
-      column: clamp(this._caret.column + columns, 1, 80),
-      line: clamp(this._caret.line + lines, 1, this._lines.length)
-    }
+    let position = this._caretState.position
+    this._caretState = new CaretState({
+      position: new CodePosition(
+        clamp(position.line + lines, 1, this._lines.length),
+        clamp(position.column + columns, 1, 80)
+      ),
+      visible: true
+    })
+    this._caretTick(true)
     this.emit('change')
   }
 
