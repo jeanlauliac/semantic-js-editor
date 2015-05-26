@@ -1,6 +1,8 @@
 import {EventEmitter} from 'events'
 import Immutable from 'immutable'
+import NodePath from '../lib/NodePath'
 import PrintContext from '../lib/PrintContext'
+import invariant from '../lib/utils/invariant'
 import nodeToLines from '../lib/nodeToLines'
 
 function clamp(number, min, max) {
@@ -42,6 +44,22 @@ class JSEditorStore extends EventEmitter {
     return this._lines
   }
 
+  getPath() {
+    let line = this._lines[this._caretState.position.line - 1]
+    let i = 0
+    let column = 1
+    while (
+      column + line.fragments.get(i).content.length
+        <= this._caretState.position.column
+    ) {
+      column += line.fragments.get(i++).content.length
+      if (i >= line.fragments.size) {
+        return
+      }
+    }
+    return line.fragments.get(i).path
+  }
+
   getUnit() {
     return this._unit
   }
@@ -61,7 +79,7 @@ class JSEditorStore extends EventEmitter {
 
   setUnit(unit) {
     this._unit = unit
-    this._lines = nodeToLines(unit, new PrintContext())
+    this._lines = nodeToLines(new NodePath(null, unit), new PrintContext())
   }
 }
 
