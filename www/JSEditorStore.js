@@ -1,9 +1,9 @@
 import {EventEmitter} from 'events'
 import Immutable from 'immutable'
 import NodePath from '../lib/NodePath'
-import PrintContext from '../lib/PrintContext'
+import TokenizerContext from '../lib/TokenizerContext'
 import invariant from '../lib/utils/invariant'
-import nodeToLines from '../lib/nodeToLines'
+import lineifyNode from '../lib/lineifyNode'
 
 function clamp(number, min, max) {
   return Math.min(Math.max(number, min), max);
@@ -24,7 +24,7 @@ class JSEditorStore extends EventEmitter {
   constructor() {
     super()
     this._caretState = new CaretState()
-    this._lines = []
+    this._lines = new Immutable.List()
     this._unit = undefined;
     this._caretTick(true);
   }
@@ -45,19 +45,22 @@ class JSEditorStore extends EventEmitter {
   }
 
   getPath() {
-    let line = this._lines[this._caretState.position.line - 1]
+    let line = this._lines.get(this._caretState.position.line - 1)
+    if (!line || line.tokens.size === 0) {
+      return
+    }
     let i = 0
     let column = 1
     while (
-      column + line.fragments.get(i).content.length
+      column + line.tokens.get(i).content.length
         <= this._caretState.position.column
     ) {
-      column += line.fragments.get(i++).content.length
-      if (i >= line.fragments.size) {
+      column += line.tokens.get(i++).content.length
+      if (i >= line.tokens.size) {
         return
       }
     }
-    return line.fragments.get(i).path
+    return line.tokens.get(i).path
   }
 
   getUnit() {
@@ -68,7 +71,7 @@ class JSEditorStore extends EventEmitter {
     let position = this._caretState.position
     this._caretState = new CaretState({
       position: new CodePosition(
-        clamp(position.line + lines, 1, this._lines.length),
+        clamp(position.line + lines, 1, this._lines.size),
         clamp(position.column + columns, 1, 80)
       ),
       visible: true
@@ -79,7 +82,7 @@ class JSEditorStore extends EventEmitter {
 
   setUnit(unit) {
     this._unit = unit
-    this._lines = nodeToLines(new NodePath(null, unit), new PrintContext())
+    this._lines = lineifyNode(new NodePath(null, unit), new TokenizerContext())
   }
 }
 
