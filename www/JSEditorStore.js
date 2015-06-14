@@ -67,6 +67,17 @@ class JSEditorStore extends EventEmitter {
     return this._unit
   }
 
+  /**
+   * Inserts the specified character at the current caret location.
+   */
+  insert(chr) {
+    let line = this._lines.get(this._caretState.position.line - 1)
+    if (!line || this._caretState.position.column > line.length) {
+      return
+    }
+    console.log(line.index + this._caretState.position.column - 1)
+  }
+
   moveCaret(lines, columns) {
     let position = this._caretState.position
     this._caretState = new CaretState({

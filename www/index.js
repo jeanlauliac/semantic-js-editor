@@ -69,5 +69,11 @@ function exampleUnit() {
     }
     event.preventDefault()
   }, false)
+  document.addEventListener('keypress', (event) => {
+    if (event.which) {
+      var chr = String.fromCharCode(event.which)
+      JSEditorStore.insert(chr)
+    }
+  }, false)
   React.render(<JSEditorContainer />, root)
 })()
