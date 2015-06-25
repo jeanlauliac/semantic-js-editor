@@ -2,8 +2,10 @@ import {EventEmitter} from 'events'
 import Immutable from 'immutable'
 import NodePath from '../lib/NodePath'
 import TokenizerContext from '../lib/TokenizerContext'
+import insertChar from '../lib/insertChar'
 import invariant from '../lib/utils/invariant'
-import lineifyNode from '../lib/lineifyNode'
+import lineify from '../lib/lineify'
+import tokenize from '../lib/tokenize'
 
 function clamp(number, min, max) {
   return Math.min(Math.max(number, min), max);
@@ -75,7 +77,9 @@ class JSEditorStore extends EventEmitter {
     if (!line || this._caretState.position.column > line.length) {
       return
     }
-    console.log(line.index + this._caretState.position.column - 1)
+    let index = line.index + this._caretState.position.column - 1
+    this.setUnit(insertChar(this._tokenGroup, index, chr))
+    this.moveCaret(0, 1)
   }
 
   moveCaret(lines, columns) {
@@ -93,7 +97,8 @@ class JSEditorStore extends EventEmitter {
 
   setUnit(unit) {
     this._unit = unit
-    this._lines = lineifyNode(unit, new TokenizerContext())
+    this._tokenGroup = tokenize(unit, new TokenizerContext())
+    this._lines = lineify(this._tokenGroup)
   }
 }
 

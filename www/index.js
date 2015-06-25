@@ -24,8 +24,8 @@ stylify({
 })
 
 function exampleUnit() {
-  return new Unit({
-    statements: new Immutable.List([
+  return new Unit(
+    new Immutable.List([
       new BinaryOp({
         left: new Literal(42),
         right: new BinaryOp({
@@ -41,7 +41,7 @@ function exampleUnit() {
         type: BinaryOpType.SUBTRACT,
       })
     ])
-  })
+  )
 }
 
 ;(function main() {
