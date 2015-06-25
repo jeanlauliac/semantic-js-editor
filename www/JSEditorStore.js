@@ -93,7 +93,7 @@ class JSEditorStore extends EventEmitter {
 
   setUnit(unit) {
     this._unit = unit
-    this._lines = lineifyNode(new NodePath(null, unit), new TokenizerContext())
+    this._lines = lineifyNode(unit, new TokenizerContext())
   }
 }
 
