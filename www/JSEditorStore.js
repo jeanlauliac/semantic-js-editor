@@ -5,6 +5,7 @@ import TokenizerContext from '../lib/TokenizerContext'
 import insertChar from '../lib/insertChar'
 import invariant from '../lib/utils/invariant'
 import lineify from '../lib/lineify'
+import removeChar from '../lib/removeChar'
 import tokenize from '../lib/tokenize'
 
 function clamp(number, min, max) {
@@ -80,6 +81,22 @@ class JSEditorStore extends EventEmitter {
     let index = line.index + this._caretState.position.column - 1
     this.setUnit(insertChar(this._tokenGroup, chr, index))
     this.moveCaret(0, 1)
+  }
+
+  /**
+   * Delete the character just before the current caret location.
+   */
+  delete() {
+    if (this._caretState.position.column <= 0) {
+      return
+    }
+    let line = this._lines.get(this._caretState.position.line - 1)
+    if (!line || this._caretState.position.column > line.length) {
+      return
+    }
+    let index = line.index + this._caretState.position.column - 2
+    this.setUnit(removeChar(this._tokenGroup, index))
+    this.moveCaret(0, -1)
   }
 
   moveCaret(lines, columns) {

@@ -64,6 +64,9 @@ function exampleUnit() {
       case 'Up':
         JSEditorStore.moveCaret(-1, 0)
         break
+      case 'U+0008':
+        JSEditorStore.delete()
+        break
       default:
         return
     }
