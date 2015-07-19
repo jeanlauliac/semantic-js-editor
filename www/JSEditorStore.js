@@ -78,7 +78,7 @@ class JSEditorStore extends EventEmitter {
       return
     }
     let index = line.index + this._caretState.position.column - 1
-    this.setUnit(insertChar(this._tokenGroup, index, chr))
+    this.setUnit(insertChar(this._tokenGroup, chr, index))
     this.moveCaret(0, 1)
   }
 
