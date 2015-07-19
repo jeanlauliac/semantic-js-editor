@@ -87,7 +87,7 @@ class JSEditorStore extends EventEmitter {
    * Delete the character just before the current caret location.
    */
   delete() {
-    if (this._caretState.position.column <= 0) {
+    if (this._caretState.position.column <= 1) {
       return
     }
     let line = this._lines.get(this._caretState.position.line - 1)
