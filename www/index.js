@@ -31,14 +31,14 @@ function exampleUnit() {
         right: new BinaryOp({
           left: new Literal(10),
           right: new Literal(32),
-          type: BinaryOpType.ADD,
+          type: 'add',
         }),
-        type: BinaryOpType.MULTIPLY,
+        type: 'multiply',
       }),
       new BinaryOp({
         left: new Literal(100),
         right: new Literal(81),
-        type: BinaryOpType.SUBTRACT,
+        type: 'subtract',
       })
     ])
   )
