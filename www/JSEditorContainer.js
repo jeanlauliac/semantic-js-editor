@@ -36,7 +36,7 @@ var JSEditorContainer = React.createClass({
         path={this.state.path}
         lines={this.state.lines}
       />
-    );
+    )
   },
 })
 

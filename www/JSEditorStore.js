@@ -9,7 +9,7 @@ import removeChar from '../lib/removeChar'
 import tokenize from '../lib/tokenize'
 
 function clamp(number, min, max) {
-  return Math.min(Math.max(number, min), max);
+  return Math.min(Math.max(number, min), max)
 }
 
 class CodePosition extends Immutable.Record({line: 1, column: 1}) {
@@ -28,8 +28,8 @@ class JSEditorStore extends EventEmitter {
     super()
     this._caretState = new CaretState()
     this._lines = new Immutable.List()
-    this._unit = undefined;
-    this._caretTick(true);
+    this._unit = undefined
+    this._caretTick(true)
   }
 
   _caretTick(visible) {
@@ -106,7 +106,7 @@ class JSEditorStore extends EventEmitter {
         clamp(position.line + lines, 1, this._lines.size),
         clamp(position.column + columns, 1, 80)
       ),
-      visible: true
+      visible: true,
     })
     this._caretTick(true)
     this.emit('change')

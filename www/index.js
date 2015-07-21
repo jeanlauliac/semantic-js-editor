@@ -9,7 +9,7 @@ import React from 'react'
 
 stylify({
   'body': {
-    fontFamily: "monospace",
+    fontFamily: 'monospace',
     fontSize: '100%',
     lineHeight: '1.6',
     margin: 0,
@@ -39,7 +39,7 @@ function exampleUnit() {
         left: new Literal(100),
         right: new Literal(81),
         type: 'subtract',
-      })
+      }),
     ])
   )
 }
