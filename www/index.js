@@ -1,10 +1,7 @@
-import BinaryOp from '../lib/ast/BinaryOp'
-import BinaryOpType from '../lib/ast/BinaryOpType'
+import Node from '../lib/ast/Node'
 import Immutable from 'immutable'
 import JSEditorContainer from './JSEditorContainer'
 import JSEditorStore from './JSEditorStore'
-import Literal from '../lib/ast/Literal'
-import Unit from '../lib/ast/Unit'
 import React from 'react'
 
 stylify({
@@ -24,21 +21,21 @@ stylify({
 })
 
 function exampleUnit() {
-  return new Unit(
-    new Immutable.List([
-      new BinaryOp({
-        left: new Literal(42),
-        right: new BinaryOp({
-          left: new Literal(10),
-          right: new Literal(32),
-          type: 'add',
-        }),
-        type: 'multiply',
+  return Node.unit(
+    Immutable.List([
+      Node.binaryOp({
+        'multiply',
+        new Literal(42),
+        Node.binaryOp({
+          'add',
+          new Literal(10),
+          new Literal(32)
+        })
       }),
-      new BinaryOp({
-        left: new Literal(100),
-        right: new Literal(81),
-        type: 'subtract',
+      Node.binaryOp({
+        'subtract',
+        new Literal(100),
+        new Literal(81)
       }),
     ])
   )
