@@ -34,6 +34,7 @@ var LintRules = {
     blockBindings: true,
     classes: true,
     destructuring: true,
+    experimentalObjectRestSpread: true,
     modules: true,
     objectLiteralShorthandMethods: true,
     restParams: true,
@@ -52,6 +53,7 @@ var LintRules = {
     'indent': [1, 2],
     'no-alert': 1,
     'no-debugger': 1,
+    'no-unused-vars': 1,
     'no-warning-comments': 1,
     'quotes': [1, 'single'],
     'semi': [1, 'never'],
@@ -77,7 +79,7 @@ function browseristyle(filePath) {
     var jsBundler = watchify(
       browserify(BrowserifyOpts)
         .transform(lintify)
-        .transform(babelify)
+        .transform(babelify.configure({optional: ['es7.objectRestSpread']}))
         .transform(styleExtractor.getTransform())
         .require(filePath, {entry: true})
       )

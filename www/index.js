@@ -23,20 +23,20 @@ stylify({
 function exampleUnit() {
   return Node.unit(
     Immutable.List([
-      Node.binaryOp({
+      Node.binaryOp(
         'multiply',
-        new Literal(42),
-        Node.binaryOp({
+        Node.literal(42),
+        Node.binaryOp(
           'add',
-          new Literal(10),
-          new Literal(32)
-        })
-      }),
-      Node.binaryOp({
+          Node.literal(10),
+          Node.literal(32)
+        )
+      ),
+      Node.binaryOp(
         'subtract',
-        new Literal(100),
-        new Literal(81)
-      }),
+        Node.literal(100),
+        Node.literal(81)
+      ),
     ])
   )
 }
