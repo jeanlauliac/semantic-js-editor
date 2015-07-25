@@ -25,6 +25,7 @@
     "cli-color": "^1.0.0",
     "envify": "^3.2.0",
     "eslint": "^0.24.1",
+    "eslint-plugin-react": "^3.0.0",
     "event-stream": "^3.3.0",
     "extend": "^2.0.1",
     "falafel": "^1.0.1",

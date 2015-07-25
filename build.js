@@ -1,6 +1,7 @@
 #!/usr/bin/env node_modules/.bin/babel-node
 
 import Emitter from './build/Emitter'
+import EslintPluginReact from 'eslint-plugin-react'
 import StyleExtractor from './build/StyleExtractor'
 import babelify from 'babelify'
 import browserify from 'browserify'
@@ -8,6 +9,7 @@ import clc from 'cli-color'
 import http from 'http'
 import invariant from './lib/utils/invariant'
 import {linter as ESLint} from 'eslint'
+import linterRules from 'eslint/lib/rules'
 import moment from 'moment'
 import nodeStatic from 'node-static'
 import nopt from 'nopt'
@@ -43,6 +45,9 @@ var LintRules = {
   env: {
       browser: true,
   },
+  plugins: [
+    'react',
+  ],
   rules: {
     'camelcase': [1, {'properties': 'always'}],
     'comma-dangle': [1, 'always-multiline'],
@@ -56,9 +61,13 @@ var LintRules = {
     'no-unused-vars': 1,
     'no-warning-comments': 1,
     'quotes': [1, 'single'],
+    'react/jsx-uses-vars': 1,
     'semi': [1, 'never'],
   },
 }
+
+/** Ugly hack to use a plugin with ESLint. */
+linterRules.import(EslintPluginReact.rules, 'react')
 
 var log = (() => {
   return (message) => {
