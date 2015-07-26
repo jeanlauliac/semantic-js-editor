@@ -93,11 +93,12 @@ function browseristyle(filePath) {
         .require(filePath, {entry: true})
       )
     var buildBundles = () => {
+      inform('start')
       var css = through()
       var js = jsBundler.bundle().on('end', () => {
         styleExtractor.toStream().pipe(css)
       })
-      inform({js, css})
+      inform('finish', {js, css})
     }
     jsBundler.on('update', paths => {
       log('Changed: ' + paths.map(filePath =>
@@ -191,28 +192,69 @@ function serving(rootPath) {
   })
 }
 
+function waitStreams(streams) {
+  return Promise.all(streams.map(stream => {
+    return new Promise((resolve, reject) => {
+      stream
+        .on('finish', () => resolve())
+        .on('error', error => reject(error))
+    })
+  }))
+}
+
 (() => {
   let opts = nopt({once: Boolean})
   let jsEntryPath = './' + path.join(Folders.WWW, 'index.js')
   let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
   let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
+  let updateStatus = (() => {
+    let counter = 0
+    let sTime = 0
+    return event => {
+      if (event === 'start') {
+        if (counter === 0) {
+          log('Starting to update project')
+          sTime = moment().unix()
+        }
+        ++counter
+      } else if (event === 'finish') {
+        --counter
+        if (counter === 0) {
+          let duration = moment().unix() - sTime
+          log(`Project is up-to-date ${
+            clc.blackBright(`(after ${duration}s)`)
+          }`)
+        }
+      }
+    }
+  })()
   let sub = new Emitter((inform) => {
-    let sub = browseristyle(jsEntryPath).subscribe(({js, css}) => {
-      streamToFile(js, jsBundlePath)
-      streamToFile(css, cssBundlePath)
-      inform()
+    let sub = browseristyle(jsEntryPath).subscribe((type, streams) => {
+      if (type === 'start') {
+        inform('start')
+      }
+      if (type === 'finish') {
+        waitStreams([
+          streamToFile(streams.js, jsBundlePath),
+          streamToFile(streams.css, cssBundlePath),
+        ]).then(() => {
+          inform('finish')
+        })
+      }
     })
     return () => {sub.remove()}
-  }).subscribe(() => {
-    if (opts.once) {
+  }).subscribe((event) => {
+    updateStatus(event)
+    if (event === 'finish' && opts.once) {
       sub.remove()
     }
   })
   let sub2 = copying(
     path.join(Folders.WWW, 'index.html'),
     path.join(Folders.OUTPUT, 'index.html')
-  ).subscribe(() => {
-    if (opts.once) {
+  ).subscribe(event => {
+    updateStatus(event)
+    if (event === 'finish' && opts.once) {
       sub2.remove()
     }
   })
