@@ -214,13 +214,13 @@ function waitStreams(streams) {
       if (event === 'start') {
         if (counter === 0) {
           log('Starting to update project')
-          sTime = moment().unix()
+          sTime = moment()
         }
         ++counter
       } else if (event === 'finish') {
         --counter
         if (counter === 0) {
-          let duration = moment().unix() - sTime
+          let duration = moment().diff(sTime, 'seconds', true)
           log(`Project is up-to-date ${
             clc.blackBright(`(after ${duration}s)`)
           }`)
