@@ -121,7 +121,7 @@ class JSEditorStore extends EventEmitter {
     let line = this._lines.get(lineIndex - 1)
     let columnIndex = this._caretState.position.column
     if (columnIndex > line.length) {
-      columnIndex = line.length + 1
+      columnIndex = line.length
     }
     this._caretState = new CaretState({
       position: new CodePosition(lineIndex, columnIndex),
