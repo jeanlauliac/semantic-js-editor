@@ -114,6 +114,19 @@ class JSEditorStore extends EventEmitter {
     this._unit = unit
     this._tokenGroup = tokenize(unit, new TokenizerContext())
     this._lines = lineify(this._tokenGroup)
+    let lineIndex = this._caretState.position.line
+    if (lineIndex > this._lines.size) {
+      lineIndex = this._lines.size
+    }
+    let line = this._lines.get(lineIndex - 1)
+    let columnIndex = this._caretState.position.column
+    if (columnIndex > line.length) {
+      columnIndex = line.length + 1
+    }
+    this._caretState = new CaretState({
+      position: new CodePosition(lineIndex, columnIndex),
+      visible: true,
+    })
   }
 }
 

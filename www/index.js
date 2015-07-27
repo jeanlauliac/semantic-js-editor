@@ -1,5 +1,4 @@
-import Node from '../lib/ast/Node'
-import Immutable from 'immutable'
+import Examples from './Examples'
 import JSEditorContainer from './JSEditorContainer'
 import JSEditorStore from './JSEditorStore'
 import React from 'react'
@@ -20,30 +19,8 @@ stylify({
   },
 })
 
-function exampleUnit() {
-  return Node.unit(
-    Immutable.List([
-      Node.binaryOp(
-        'multiply',
-        Node.literal(42),
-        Node.binaryOp(
-          'add',
-          Node.literal(10),
-          Node.literal(32)
-        )
-      ),
-      Node.binaryOp(
-        'subtract',
-        Node.literal(100),
-        Node.literal(81)
-      ),
-    ])
-  )
-}
-
 ;(function main() {
   let root = document.getElementById('root')
-  JSEditorStore.setUnit(exampleUnit())
   document.addEventListener('keydown', (event) => {
     if (event.defaultPrevented) {
       return
@@ -75,5 +52,6 @@ function exampleUnit() {
       JSEditorStore.insert(chr)
     }
   }, false)
+  JSEditorStore.setUnit(Examples.empty)
   React.render(<JSEditorContainer />, root)
 })()
