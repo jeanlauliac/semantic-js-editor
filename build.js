@@ -112,7 +112,7 @@ function browseristyle(filePath) {
         // Need to do that async.
         // See https://github.com/substack/watchify/issues/22#issuecomment-67673776
         jsBundler.close()
-      }, 1000)
+      }, 500)
     }
   })
 }
@@ -167,7 +167,7 @@ function copying(sourcePath, destPath) {
     var copy = () => {
       return streamToFile(fs.createReadStream(sourcePath), destPath)
     }
-    var watcher = fs.watch(sourcePath, () => {
+    var watcher = fs.watch(sourcePath, {persistent: false}, () => {
       log('Changed: ' + clc.green(sourcePath))
       inform(copy())
     })
