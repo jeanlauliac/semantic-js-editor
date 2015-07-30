@@ -37,10 +37,11 @@ var LintRules = {
     classes: true,
     destructuring: true,
     experimentalObjectRestSpread: true,
+    jsx: true,
     modules: true,
     objectLiteralShorthandMethods: true,
     restParams: true,
-    jsx: true,
+    templateStrings: true,
   },
   env: {
       browser: true,
