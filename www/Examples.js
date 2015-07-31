@@ -1,27 +1,27 @@
-import Node from '../lib/ast/Node'
+import SyntaxTree from '../lib/ast/SyntaxTree'
 import Immutable from 'immutable'
 
 export default {
 
   empty:
-    Node.unit(Immutable.List([])),
+    SyntaxTree.unit(Immutable.List([])),
 
   maths:
-    Node.unit(
+    SyntaxTree.unit(
       Immutable.List([
-        Node.binaryOp(
+        SyntaxTree.binaryOp(
           'multiply',
-          Node.literal(42),
-          Node.binaryOp(
+          SyntaxTree.literal(42),
+          SyntaxTree.binaryOp(
             'add',
-            Node.literal(10),
-            Node.literal(32)
+            SyntaxTree.literal(10),
+            SyntaxTree.literal(32)
           )
         ),
-        Node.binaryOp(
+        SyntaxTree.binaryOp(
           'subtract',
-          Node.literal(100),
-          Node.literal(81)
+          SyntaxTree.literal(100),
+          SyntaxTree.literal(81)
         ),
       ])
     ),
