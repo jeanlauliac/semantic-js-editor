@@ -77,7 +77,8 @@ class JSEditorStore extends EventEmitter {
       return
     }
     let index = line.index + this._caretState.position.column - 1
-    this.setUnit(insertChar(this._tokenGroup, chr, index))
+    this.setUnit(insertChar(this._tokenGroup.intervals,
+      this._tokenGroup.syntaxTree, chr, index))
     this.moveCaret(0, 1)
   }
 
@@ -93,7 +94,8 @@ class JSEditorStore extends EventEmitter {
       return
     }
     let index = line.index + this._caretState.position.column - 2
-    this.setUnit(removeChar(this._tokenGroup, index))
+    this.setUnit(removeChar(this._tokenGroup.intervals,
+      this._tokenGroup.syntaxTree, index))
     this.moveCaret(0, -1)
   }
 
@@ -113,7 +115,7 @@ class JSEditorStore extends EventEmitter {
   setUnit(unit) {
     this._unit = unit
     this._tokenGroup = tokenize(unit, new TokenizerContext())
-    this._lines = lineify(this._tokenGroup)
+    this._lines = lineify(this._tokenGroup.intervals)
     let lineIndex = this._caretState.position.line
     if (lineIndex > this._lines.size) {
       lineIndex = this._lines.size

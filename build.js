@@ -59,6 +59,7 @@ var LintRules = {
     'indent': [1, 2],
     'no-alert': 1,
     'no-debugger': 1,
+    'no-undef': 2,
     'no-unused-vars': 1,
     'no-warning-comments': 1,
     'quotes': [1, 'single'],
