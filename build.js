@@ -11,6 +11,7 @@ import fs from 'fs'
 import invariant from './lib/utils/invariant'
 import {linter as ESLint} from 'eslint'
 import linterRules from 'eslint/lib/rules'
+import mkdirp from 'mkdirp'
 import moment from 'moment'
 import nodeStatic from 'node-static'
 import nopt from 'nopt'
@@ -210,7 +211,7 @@ function waitStreams(streams) {
   let jsEntryPath = './' + path.join(Folders.WWW, 'index.js')
   let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
   let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
-  fs.mkdirSync(Folders.OUTPUT)
+  mkdirp.sync(Folders.OUTPUT)
   let updateStatus = (() => {
     let counter = 0
     let sTime = 0
