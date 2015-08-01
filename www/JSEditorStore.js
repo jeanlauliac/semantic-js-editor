@@ -114,7 +114,7 @@ class JSEditorStore extends EventEmitter {
 
   setUnit(unit) {
     this._unit = unit
-    this._tokenGroup = tokenize(unit, new TokenizerContext())
+    this._tokenGroup = tokenize(unit, new TokenizerContext(), this._tokenGroup)
     this._lines = lineify(this._tokenGroup.intervals)
     let lineIndex = this._caretState.position.line
     if (lineIndex > this._lines.size) {
