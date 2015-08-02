@@ -1,6 +1,7 @@
 import {EventEmitter} from 'events'
 import Immutable from 'immutable'
 import TokenizerContext from '../lib/TokenizerContext'
+import getIndexChange from '../lib/getIndexChange'
 import insertChar from '../lib/insertChar'
 import lineify from '../lib/lineify'
 import removeChar from '../lib/removeChar'
@@ -78,8 +79,7 @@ class JSEditorStore extends EventEmitter {
     }
     let index = line.index + this._caretState.position.column - 1
     this.setUnit(insertChar(this._tokenGroup.intervals,
-      this._tokenGroup.syntaxTree, chr, index))
-    this.moveCaret(0, 1)
+      this._tokenGroup.syntaxTree, chr, index), index)
   }
 
   /**
@@ -95,8 +95,7 @@ class JSEditorStore extends EventEmitter {
     }
     let index = line.index + this._caretState.position.column - 2
     this.setUnit(removeChar(this._tokenGroup.intervals,
-      this._tokenGroup.syntaxTree, index))
-    this.moveCaret(0, -1)
+      this._tokenGroup.syntaxTree, index), index)
   }
 
   moveCaret(lines, columns) {
@@ -112,23 +111,27 @@ class JSEditorStore extends EventEmitter {
     this.emit('change')
   }
 
-  setUnit(unit) {
+  setUnit(unit, index) {
+    index = index || 0
     this._unit = unit
+    let prevTokenTree = this._tokenGroup
     this._tokenGroup = tokenize(unit, new TokenizerContext(), this._tokenGroup)
     this._lines = lineify(this._tokenGroup.intervals)
-    let lineIndex = this._caretState.position.line
-    if (lineIndex > this._lines.size) {
-      lineIndex = this._lines.size
+    if (prevTokenTree == null) {
+      this.emit('change')
+      return
     }
-    let line = this._lines.get(lineIndex - 1)
-    let columnIndex = this._caretState.position.column
-    if (columnIndex > line.length) {
-      columnIndex = line.length
+    let newIndex = getIndexChange(prevTokenTree, this._tokenGroup, index)
+    let i = 0
+    while (i < this._lines.size && this._lines.get(i).index <= newIndex) {
+      ++i
     }
+    let col = newIndex - this._lines.get(i - 1).index + 1
     this._caretState = new CaretState({
-      position: new CodePosition(lineIndex, columnIndex),
+      position: new CodePosition(i, col),
       visible: true,
     })
+    this._caretTick(true)
   }
 }
 
