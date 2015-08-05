@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "semantic-js-editor",
+  "name": "@jeanlauliac/semantic-js-editor",
   "version": "1.0.0",
   "description": "",
   "scripts": {
@@ -18,10 +18,11 @@
   "homepage": "https://github.com/jeanlauliac/semantic-js-editor",
   "devDependencies": {
     "absurd": "^0.3.34",
-    "babel": "^5.2.6",
+    "babel": "^5.8.20",
     "babel-jest": "^4.0.0",
     "babelify": "^6.0.2",
     "browserify": "^10.0.0",
+    "chokidar": "^1.0.5",
     "cli-color": "^1.0.0",
     "envify": "^3.2.0",
     "eslint": "^0.24.1",

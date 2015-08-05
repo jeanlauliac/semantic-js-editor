@@ -1,7 +1,7 @@
 import invariant from '../lib/utils/invariant'
 
 export default class Emitter {
-  constructor(setup, teardown) {
+  constructor(setup) {
     this._subs = {}
     this._nextKey = 1
     this._subCount = 0

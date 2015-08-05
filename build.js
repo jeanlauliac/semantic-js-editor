@@ -1,7 +1,9 @@
 #!/usr/bin/env node_modules/.bin/babel-node
 
+import CopyBot from './build/CopyBot'
 import Emitter from './build/Emitter'
 import EslintPluginReact from 'eslint-plugin-react'
+import JavascriptBot from './build/JavascriptBot'
 import StyleExtractor from './build/StyleExtractor'
 import babelify from 'babelify'
 import browserify from 'browserify'
@@ -24,13 +26,6 @@ var Folders = {
   WWW: 'www',
 }
 
-var BrowserifyOpts = {
-  cache: {},
-  debug: false,
-  fullPaths: true,
-  packageCache: {},
-}
-
 var LintRules = {
   ecmaFeatures: {
     // Feel free to add more stuff here.
@@ -46,7 +41,10 @@ var LintRules = {
     templateStrings: true,
   },
   env: {
-      browser: true,
+    browser: true,
+  },
+  globals: {
+    stylify: false,
   },
   plugins: [
     'react',
@@ -73,53 +71,11 @@ var LintRules = {
 /** Ugly hack to use a plugin with ESLint. */
 linterRules.import(EslintPluginReact.rules, 'react')
 
-var log = (() => {
-  return (message) => {
-    let date = clc.blackBright(moment().format('HH:mm:ss'))
-    console.error(`${date}  ${message}`)
-  }
-})()
-
 process.on('uncaughtException', (err) => {
   log(clc.red('*** Uncaught exception!'))
   console.error(err.stack)
   process.exit(1)
 })
-
-function browseristyle(filePath) {
-  return new Emitter(inform => {
-    var styleExtractor = new StyleExtractor()
-    var jsBundler = watchify(
-      browserify(BrowserifyOpts)
-        .transform(lintify)
-        .transform(babelify.configure({optional: ['es7.objectRestSpread']}))
-        .transform(styleExtractor.getTransform())
-        .require(filePath, {entry: true})
-      )
-    var buildBundles = () => {
-      inform('start')
-      var css = through()
-      var js = jsBundler.bundle().on('end', () => {
-        styleExtractor.toStream().pipe(css)
-      })
-      inform('finish', {js, css})
-    }
-    jsBundler.on('update', paths => {
-      log('Changed: ' + paths.map(filePath =>
-        clc.green(path.relative('.', filePath))).join(', '))
-      buildBundles()
-    })
-    buildBundles()
-    return () => {
-      jsBundler.removeListener('update', buildBundles)
-      setTimeout(() => {
-        // Need to do that async.
-        // See https://github.com/substack/watchify/issues/22#issuecomment-67673776
-        jsBundler.close()
-      }, 500)
-    }
-  })
-}
 
 function lintify(filePath) {
   let source = ''
@@ -152,65 +108,8 @@ function pad(text, length) {
   return text + new Array(length - text.length + 1).join(' ')
 }
 
-function streamToFile(stream, filePath) {
-  return stream.on('error', error => {
-    log(clc.red(`*** Failed to generate ${filePath}`))
-    console.error(error.stack)
-  }).pipe(fs.createWriteStream(filePath))
-    .on('error', (error) => {
-      log(clc.red(`*** Failed to write file ${filePath}`))
-      console.error(error.stack)
-    })
-    .on('finish', () => {
-      log(`Wrote ${clc.blue(filePath)}`)
-    })
-}
-
-function copying(sourcePath, destPath) {
-  return new Emitter(inform => {
-    var copy = () => {
-      return streamToFile(fs.createReadStream(sourcePath), destPath)
-    }
-    var watcher = fs.watch(sourcePath, {persistent: false}, () => {
-      log('Changed: ' + clc.green(sourcePath))
-      inform(copy())
-    })
-    inform(copy())
-    return () => {
-      watcher.close()
-    }
-  })
-}
-
-function serving(rootPath) {
-  return new Emitter(inform => {
-    let server = new nodeStatic.Server(rootPath)
-    http.createServer((request, response) => {
-      request.on('end', () => {
-        server.serve(request, response)
-      }).resume()
-    }).listen(8080).on('listening', () => {
-      log(`Listening on port ${clc.magenta(8080)}`)
-    })
-    return () => {invariant(false, 'unsupported')}
-  })
-}
-
-function waitStreams(streams) {
-  return Promise.all(streams.map(stream => {
-    return new Promise((resolve, reject) => {
-      stream
-        .on('finish', () => resolve())
-        .on('error', error => reject(error))
-    })
-  }))
-}
-
-(() => {
+function main() {
   let opts = nopt({once: Boolean})
-  let jsEntryPath = './' + path.join(Folders.WWW, 'index.js')
-  let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
-  let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
   mkdirp.sync(Folders.OUTPUT)
   let updateStatus = (() => {
     let counter = 0
@@ -218,7 +117,6 @@ function waitStreams(streams) {
     return event => {
       if (event === 'start') {
         if (counter === 0) {
-          log('Starting to update project')
           sTime = moment()
         }
         ++counter
@@ -233,37 +131,80 @@ function waitStreams(streams) {
       }
     }
   })()
-  let sub = new Emitter((inform) => {
-    let sub = browseristyle(jsEntryPath).subscribe((type, streams) => {
-      if (type === 'start') {
-        inform('start')
-      }
-      if (type === 'finish') {
-        waitStreams([
-          streamToFile(streams.js, jsBundlePath),
-          streamToFile(streams.css, cssBundlePath),
-        ]).then(() => {
-          inform('finish')
-        })
+  buildJS(opts, updateStatus)
+  copyHtml(opts, updateStatus)
+  if (!opts.once) {
+    serve(Folders.OUTPUT)
+  }
+}
+
+function buildJS(opts, updateStatus) {
+  let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
+  let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
+  let bot = new JavascriptBot(
+    './' + path.join(Folders.WWW, 'index.js'),
+    jsBundlePath,
+    cssBundlePath,
+    [lintify, babelify.configure({optional: ['es7.objectRestSpread']})]
+  )
+    .on('start', () => updateStatus('start'))
+    .on('change', paths => {
+      log('Changed: ' + paths.map(
+        filePath => clc.green(path.relative('.', filePath))
+      ).join(', '))
+    })
+    .on('error', logError)
+    .on('finish', () => {
+      log(`Wrote ${clc.blue(jsBundlePath)}`)
+      log(`Wrote ${clc.blue(cssBundlePath)}`)
+      updateStatus('finish')
+      if (opts.once) {
+        bot.close()
       }
     })
-    return () => {sub.remove()}
-  }).subscribe((event) => {
-    updateStatus(event)
-    if (event === 'finish' && opts.once) {
-      sub.remove()
-    }
+  return bot
+}
+
+function copyHtml(opts, updateStatus) {
+  let sourcePath = path.join(Folders.WWW, 'index.html')
+  let destPath = path.join(Folders.OUTPUT, 'index.html')
+  let bot = new CopyBot(sourcePath, destPath)
+    .on('start', () => updateStatus('start'))
+    .on('change', logChange.bind(undefined, sourcePath))
+    .on('error', logError)
+    .on('finish', () => {
+      log(`Wrote ${clc.blue(destPath)}`)
+      updateStatus('finish')
+      if (opts.once) {
+        bot.close()
+      }
+    })
+  return bot
+}
+
+function logChange(filePath) {
+  log('Changed: ' + clc.green(filePath))
+}
+
+function logError(error) {
+  log(clc.red(`*** Error: ${error.message}`))
+  console.error(error.stack)
+}
+
+function serve(rootPath) {
+  let server = new nodeStatic.Server(rootPath)
+  http.createServer((request, response) => {
+    request.on('end', () => {
+      server.serve(request, response)
+    }).resume()
+  }).listen(8080).on('listening', () => {
+    log(`Listening on port ${clc.magenta(8080)}`)
   })
-  let sub2 = copying(
-    path.join(Folders.WWW, 'index.html'),
-    path.join(Folders.OUTPUT, 'index.html')
-  ).subscribe(event => {
-    updateStatus(event)
-    if (event === 'finish' && opts.once) {
-      sub2.remove()
-    }
-  })
-  if (!opts.once) {
-    serving(Folders.OUTPUT).subscribe(() => {})
-  }
-})()
+}
+
+function log(message) {
+  let date = clc.blackBright(moment().format('HH:mm:ss'))
+  console.error(`${date}  ${message}`)
+}
+
+main()
