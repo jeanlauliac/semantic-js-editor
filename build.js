@@ -18,6 +18,7 @@ import moment from 'moment'
 import nodeStatic from 'node-static'
 import nopt from 'nopt'
 import path from 'path'
+import readline from 'readline'
 import through from 'through2'
 import watchify from 'watchify'
 
@@ -112,19 +113,34 @@ function main() {
   let opts = nopt({once: Boolean, port: Number})
   opts.port = opts.port || 8080
   mkdirp.sync(Folders.OUTPUT)
+  let sl = new StatusLogger()
+  let log = message => {
+    let date = clc.blackBright(moment().format('HH:mm:ss'))
+    sl.log(`${date}  ${message}`)
+  }
   let updateStatus = (() => {
     let counter = 0
     let sTime = 0
+    let phase = 0
+    let interval
     return event => {
       if (event === 'start') {
         if (counter === 0) {
           sTime = moment()
+          sl.status(`Updating  ${progressString(10, phase)}`)
+          interval = setInterval(() => {
+            ++phase
+            sl.status(`Updating  ${progressString(10, phase)}`)
+          }, 100)
         }
         ++counter
       } else if (event === 'finish') {
         --counter
         if (counter === 0) {
           let duration = moment().diff(sTime, 'seconds', true)
+          clearInterval(interval)
+          phase = 0
+          sl.status()
           log(`Project is up-to-date ${
             clc.blackBright(`(after ${duration}s)`)
           }`)
@@ -132,14 +148,14 @@ function main() {
       }
     }
   })()
-  buildJS(opts, updateStatus)
-  copyHtml(opts, updateStatus)
+  buildJS(opts, updateStatus, log)
+  copyHtml(opts, updateStatus, log)
   if (!opts.once) {
-    serve(Folders.OUTPUT, opts)
+    serve(Folders.OUTPUT, opts, log)
   }
 }
 
-function buildJS(opts, updateStatus) {
+function buildJS(opts, updateStatus, log) {
   let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
   let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
   let bot = new JavascriptBot(
@@ -154,7 +170,7 @@ function buildJS(opts, updateStatus) {
         filePath => clc.green(path.relative('.', filePath))
       ).join(', '))
     })
-    .on('error', logError)
+    .on('error', logError.bind(undefined, log))
     .on('finish', () => {
       log(`Wrote ${clc.blue(jsBundlePath)}`)
       log(`Wrote ${clc.blue(cssBundlePath)}`)
@@ -166,13 +182,13 @@ function buildJS(opts, updateStatus) {
   return bot
 }
 
-function copyHtml(opts, updateStatus) {
+function copyHtml(opts, updateStatus, log) {
   let sourcePath = path.join(Folders.WWW, 'index.html')
   let destPath = path.join(Folders.OUTPUT, 'index.html')
   let bot = new CopyBot(sourcePath, destPath)
     .on('start', () => updateStatus('start'))
-    .on('change', logChange.bind(undefined, sourcePath))
-    .on('error', logError)
+    .on('change', () => log('Changed: ' + clc.green(sourcePath)))
+    .on('error', logError.bind(undefined, log))
     .on('finish', () => {
       log(`Wrote ${clc.blue(destPath)}`)
       updateStatus('finish')
@@ -183,16 +199,11 @@ function copyHtml(opts, updateStatus) {
   return bot
 }
 
-function logChange(filePath) {
-  log('Changed: ' + clc.green(filePath))
+function logError(log, error) {
+  log(clc.red(`*** ${error.stack}`))
 }
 
-function logError(error) {
-  log(clc.red(`*** Error: ${error.message}`))
-  console.error(error.stack)
-}
-
-function serve(rootPath, opts) {
+function serve(rootPath, opts, log) {
   let server = new nodeStatic.Server(rootPath)
   http.createServer((request, response) => {
     request.on('end', () => {
@@ -203,9 +214,52 @@ function serve(rootPath, opts) {
   })
 }
 
-function log(message) {
-  let date = clc.blackBright(moment().format('HH:mm:ss'))
-  console.error(`${date}  ${message}`)
+class StatusLogger {
+
+  constructor() {
+    this._hasStatus = false
+  }
+
+  /**
+   * Set the status.
+   */
+  status(message) {
+    if (this._status != null) {
+      readline.clearLine(process.stderr, 0)
+      readline.cursorTo(process.stderr, 0)
+    }
+    this._status = message
+    if (this._status != null) {
+      process.stderr.write(this._status)
+    }
+  }
+
+  /**
+   * Writes a message.
+   */
+  log(message) {
+    if (this._status == null) {
+      console.error(message)
+      return
+    }
+    readline.clearLine(process.stderr, 0)
+    readline.cursorTo(process.stderr, 0)
+    console.error(message)
+    process.stderr.write(this._status)
+  }
+
+}
+
+function progressString(length, phase) {
+  let space = length - 5
+  let pos = phase % (space * 2)
+  pos = pos >= space ? space * 2 - pos : pos
+  return '[' + repeatString(' ', pos)
+    + '<=>' + repeatString(' ', space - pos) + ']'
+}
+
+function repeatString(str, count) {
+  return new Array(count + 1).join(str)
 }
 
 main()
