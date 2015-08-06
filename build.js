@@ -109,7 +109,8 @@ function pad(text, length) {
 }
 
 function main() {
-  let opts = nopt({once: Boolean})
+  let opts = nopt({once: Boolean, port: Number})
+  opts.port = opts.port || 8080
   mkdirp.sync(Folders.OUTPUT)
   let updateStatus = (() => {
     let counter = 0
@@ -134,7 +135,7 @@ function main() {
   buildJS(opts, updateStatus)
   copyHtml(opts, updateStatus)
   if (!opts.once) {
-    serve(Folders.OUTPUT)
+    serve(Folders.OUTPUT, opts)
   }
 }
 
@@ -191,14 +192,14 @@ function logError(error) {
   console.error(error.stack)
 }
 
-function serve(rootPath) {
+function serve(rootPath, opts) {
   let server = new nodeStatic.Server(rootPath)
   http.createServer((request, response) => {
     request.on('end', () => {
       server.serve(request, response)
     }).resume()
-  }).listen(8080).on('listening', () => {
-    log(`Listening on port ${clc.magenta(8080)}`)
+  }).listen(opts.port).on('listening', () => {
+    log(`Listening on port ${clc.magenta(opts.port)}`)
   })
 }
 
