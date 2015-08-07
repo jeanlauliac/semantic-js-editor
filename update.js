@@ -1,10 +1,11 @@
 #!/usr/bin/env node_modules/.bin/babel-node
 
-import CopyBot from './build/CopyBot'
-import Emitter from './build/Emitter'
+import CopyBot from './update/CopyBot'
+import Emitter from './update/Emitter'
 import EslintPluginReact from 'eslint-plugin-react'
-import JavascriptBot from './build/JavascriptBot'
-import StyleExtractor from './build/StyleExtractor'
+import JavascriptBot from './update/JavascriptBot'
+import StatusLogger from './update/StatusLogger'
+import StyleExtractor from './update/StyleExtractor'
 import babelify from 'babelify'
 import browserify from 'browserify'
 import clc from 'cli-color'
@@ -18,7 +19,7 @@ import moment from 'moment'
 import nodeStatic from 'node-static'
 import nopt from 'nopt'
 import path from 'path'
-import readline from 'readline'
+import progressString from './update/progressString'
 import through from 'through2'
 import watchify from 'watchify'
 
@@ -113,7 +114,7 @@ function main() {
   let opts = nopt({once: Boolean, port: Number})
   opts.port = opts.port || 8080
   mkdirp.sync(Folders.OUTPUT)
-  let sl = new StatusLogger()
+  let sl = new StatusLogger(process.stderr)
   let log = message => {
     let date = clc.blackBright(moment().format('HH:mm:ss'))
     sl.log(`${date}  ${message}`)
@@ -212,54 +213,6 @@ function serve(rootPath, opts, log) {
   }).listen(opts.port).on('listening', () => {
     log(`Listening on port ${clc.magenta(opts.port)}`)
   })
-}
-
-class StatusLogger {
-
-  constructor() {
-    this._hasStatus = false
-  }
-
-  /**
-   * Set the status.
-   */
-  status(message) {
-    if (this._status != null) {
-      readline.clearLine(process.stderr, 0)
-      readline.cursorTo(process.stderr, 0)
-    }
-    this._status = message
-    if (this._status != null) {
-      process.stderr.write(this._status)
-    }
-  }
-
-  /**
-   * Writes a message.
-   */
-  log(message) {
-    if (this._status == null) {
-      console.error(message)
-      return
-    }
-    readline.clearLine(process.stderr, 0)
-    readline.cursorTo(process.stderr, 0)
-    console.error(message)
-    process.stderr.write(this._status)
-  }
-
-}
-
-function progressString(length, phase) {
-  let space = length - 5
-  let pos = phase % (space * 2)
-  pos = pos >= space ? space * 2 - pos : pos
-  return '[' + repeatString(' ', pos)
-    + '<=>' + repeatString(' ', space - pos) + ']'
-}
-
-function repeatString(str, count) {
-  return new Array(count + 1).join(str)
 }
 
 main()
