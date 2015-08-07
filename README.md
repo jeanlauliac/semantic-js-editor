@@ -7,8 +7,8 @@ based primarily on the AST (rather than flat text).
 
 Run:
 
-    ./build.js
+    ./update.js
 
-It takes some time to build from scratch. Once started, it will update anytime
+It takes some time to update from scratch. Once started, it will update anytime
 a source file change. You can check out the editor at
 [`localhost:8080`](http://localhost:8080).
