@@ -74,12 +74,12 @@ var LintRules = {
 linterRules.import(EslintPluginReact.rules, 'react')
 
 process.on('uncaughtException', (err) => {
-  log(clc.red('*** Uncaught exception!'))
+  console.error(clc.red('*** Uncaught exception!'))
   console.error(err.stack)
   process.exit(1)
 })
 
-function lintify(filePath) {
+function lintify(log, filePath) {
   let source = ''
   return through(function (chunk, enc, callback) {
     source += chunk
@@ -123,6 +123,7 @@ function main() {
     let counter = 0
     let sTime = 0
     let phase = 0
+    let hadErrors = false
     let interval
     return event => {
       if (event === 'start') {
@@ -135,16 +136,26 @@ function main() {
           }, 100)
         }
         ++counter
-      } else if (event === 'finish') {
+      } else if (event === 'finish' || event === 'error') {
         --counter
+        if (event === 'error') {
+          hadErrors = true
+        }
         if (counter === 0) {
           let duration = moment().diff(sTime, 'seconds', true)
           clearInterval(interval)
           phase = 0
           sl.status()
-          log(`Project is up-to-date ${
-            clc.blackBright(`(after ${duration}s)`)
-          }`)
+          if (hadErrors) {
+            log(`Project is NOT up-to-date, error(s) happened ${
+              clc.blackBright(`(after ${duration}s)`)
+            }`)
+          } else {
+            log(`Project is up-to-date ${
+              clc.blackBright(`(after ${duration}s)`)
+            }`)
+          }
+          hadErrors = false
         }
       }
     }
@@ -163,7 +174,10 @@ function buildJS(opts, updateStatus, log) {
     './' + path.join(Folders.WWW, 'index.js'),
     jsBundlePath,
     cssBundlePath,
-    [lintify, babelify.configure({optional: ['es7.objectRestSpread']})]
+    [
+      lintify.bind(undefined, log),
+      babelify.configure({optional: ['es7.objectRestSpread']})
+    ]
   )
     .on('start', () => updateStatus('start'))
     .on('change', paths => {
@@ -171,7 +185,10 @@ function buildJS(opts, updateStatus, log) {
         filePath => clc.green(path.relative('.', filePath))
       ).join(', '))
     })
-    .on('error', logError.bind(undefined, log))
+    .on('error', error => {
+      logError(log, error)
+      updateStatus('error')
+    })
     .on('finish', () => {
       log(`Wrote ${clc.blue(jsBundlePath)}`)
       log(`Wrote ${clc.blue(cssBundlePath)}`)
@@ -189,7 +206,10 @@ function copyHtml(opts, updateStatus, log) {
   let bot = new CopyBot(sourcePath, destPath)
     .on('start', () => updateStatus('start'))
     .on('change', () => log('Changed: ' + clc.green(sourcePath)))
-    .on('error', logError.bind(undefined, log))
+    .on('error', error => {
+      logError(log, error)
+      updateStatus('error')
+    })
     .on('finish', () => {
       log(`Wrote ${clc.blue(destPath)}`)
       updateStatus('finish')
@@ -201,7 +221,7 @@ function copyHtml(opts, updateStatus, log) {
 }
 
 function logError(log, error) {
-  log(clc.red(`*** ${error.stack}`))
+  log('*** ' + error.stack)
 }
 
 function serve(rootPath, opts, log) {

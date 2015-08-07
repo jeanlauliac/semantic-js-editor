@@ -1,15 +1,13 @@
-import BrowserifyBot from './BrowserifyBot'
 import {EventEmitter} from 'events'
 import {PassThrough} from 'stream'
 import StyleExtractor from './StyleExtractor'
 import babelify from 'babelify'
 import browserify from 'browserify'
+import streamBrowserify from './streamBrowserify'
 
 var BrowserifyOpts = {
-  cache: {},
   debug: false,
   fullPaths: true,
-  packageCache: {},
 }
 
 export default class StylifyBot extends EventEmitter {
@@ -17,13 +15,16 @@ export default class StylifyBot extends EventEmitter {
   constructor(entryPath, transforms) {
     super()
     this._styleExtractor = new StyleExtractor()
-    var bundler = browserify(BrowserifyOpts)
-    transforms.forEach(transform => bundler.transform(transform))
-    bundler.transform(this._styleExtractor.getTransform())
-    bundler.require(entryPath, {entry: true})
-    this._bot = new BrowserifyBot(bundler)
+    this._bot = streamBrowserify(BrowserifyOpts, (bundler) => {
+      transforms.forEach(transform => bundler.transform(transform))
+      bundler.transform(this._styleExtractor.getTransform())
+      bundler.require(entryPath, {entry: true})
+    })
       .on('change', paths => this.emit('change', paths))
-      .on('update', this._update.bind(this))
+      .on('readable', () => {
+        this._update(this._bot.read())
+        this._bot.read(0)
+      })
   }
 
   _update(output) {
