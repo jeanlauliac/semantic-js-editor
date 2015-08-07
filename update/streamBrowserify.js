@@ -1,4 +1,3 @@
-import {EventEmitter} from 'events'
 import {Readable} from 'stream'
 import browserify from 'browserify'
 import watchify from 'watchify'
@@ -14,6 +13,8 @@ let WATCHIFY_OPTS = {
  *
  *   - `opts` is a list of options to pass to browserify.
  *   - `setupFn(bundler)` is a function that must setup the browserify instance.
+ *
+ * The stream also emits the `change(filePaths)` event to explicit what changed.
  */
 export default function streamBrowserify(opts, setupFn) {
 

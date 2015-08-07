@@ -1,8 +1,13 @@
-import StylifyBot from './StylifyBot'
 import {EventEmitter} from 'events'
 import {PassThrough} from 'stream'
 import babelify from 'babelify'
 import browserify from 'browserify'
+import streamStylify from './streamStylify'
+
+var BrowserifyOpts = {
+  debug: false,
+  fullPaths: true,
+}
 
 export default class JavascriptBot extends EventEmitter {
 
@@ -10,12 +15,19 @@ export default class JavascriptBot extends EventEmitter {
     super()
     this._jsDestPath = jsDestPath
     this._cssDestPath = cssDestPath
-    this._bot = new StylifyBot(entryPath, transforms)
+    this._bot = streamStylify(BrowserifyOpts, bundler => {
+      transforms.forEach(transform => bundler.transform(transform))
+      bundler.require(entryPath, {entry: true})
+    })
+    this._bot
       .on('change', paths => this.emit('change', paths))
-      .on('update', this._update.bind(this))
+      .on('readable', () => {
+        this._update(this._bot.read())
+        this._bot.read(0)
+      })
   }
 
-  _update(jsOutput, cssOutput) {
+  _update([jsOutput, cssOutput]) {
     this.emit('start')
     jsOutput.on('error', error => this.emit('error', error, 'js'))
     cssOutput.on('error', error => this.emit('error', error, 'css'))
