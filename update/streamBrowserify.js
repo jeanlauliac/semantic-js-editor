@@ -46,11 +46,15 @@ export default function streamBrowserify(opts, setupFn) {
    * Stops the bot to allow the process to exit.
    */
   stream.close = () => {
+    if (watcher == null) {
+      return
+    }
     setTimeout(() => {
       // Need to do that async.
       // See https://github.com/substack/watchify/issues/22#issuecomment-67673776
       watcher.close()
       stream.push(null)
+      watcher = null
     }, 500)
   }
 

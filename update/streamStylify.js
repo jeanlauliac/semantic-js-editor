@@ -25,6 +25,10 @@ export default function streamStylify(opts, setupFn) {
       process(browserifyStream.read())
       browserifyStream.read(0)
     })
+    .on('error', error => {
+      stream.emit('error', error)
+      stream.close()
+    })
     .on('end', () => stream.push(null))
 
   /**
@@ -35,7 +39,7 @@ export default function streamStylify(opts, setupFn) {
     var cssStream = new PassThrough()
     jsStream.on('end', () => {
       styleExtractor.toStream().pipe(cssStream)
-    })
+    }).on('error', () => cssStream.end())
     stream.push([jsStream, cssStream])
   }
 
