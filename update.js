@@ -1,6 +1,5 @@
 #!/usr/bin/env node_modules/.bin/babel-node
 
-import CopyBot from './update/CopyBot'
 import Emitter from './update/Emitter'
 import EslintPluginReact from 'eslint-plugin-react'
 import JavascriptBot from './update/JavascriptBot'
@@ -21,6 +20,7 @@ import nopt from 'nopt'
 import path from 'path'
 import progressString from './update/progressString'
 import through from 'through2'
+import updateCopy from './update/updateCopy'
 import watchify from 'watchify'
 
 var Folders = {
@@ -203,11 +203,19 @@ function buildJS(opts, updateStatus, log) {
 function copyHtml(opts, updateStatus, log) {
   let sourcePath = path.join(Folders.WWW, 'index.html')
   let destPath = path.join(Folders.OUTPUT, 'index.html')
-  let bot = new CopyBot(sourcePath, destPath)
+  let bot = updateCopy(sourcePath, destPath)
     .on('start', () => updateStatus('start'))
     .on('change', () => log('Changed: ' + clc.green(sourcePath)))
     .on('error', error => {
-      logError(log, error)
+      if (error.origin === 'source') {
+        log(clc.red(`*** Could not read source file \`${sourcePath}\``))
+        log(error.message)
+      } else if (error.origin === 'destination') {
+        log(clc.red(`*** Could not write in file \`${destPath}\``))
+        log(error.message)
+      } else {
+        log(error.stack)
+      }
       updateStatus('error')
     })
     .on('finish', () => {
