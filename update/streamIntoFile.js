@@ -16,7 +16,10 @@ export default function streamIntoFile(filePath) {
       prev.file.end()
     }
     let fileStream = fs.createWriteStream(filePath)
-    inboundStream.on('error', () => {
+    inboundStream.on('error', error => {
+      let outError = new Error(`Failed to update ${filePath}`)
+      outError.cause = error
+      fileStream.emit('error', outError)
       fileStream.end()
       prev = undefined
     }).on('end', () => {

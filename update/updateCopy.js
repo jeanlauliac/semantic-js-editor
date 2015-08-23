@@ -1,39 +1,41 @@
 import {EventEmitter} from 'events'
+import {Readable} from 'stream'
 import streamIntoCallback from './streamIntoCallback'
 import streamFromFile from './streamFromFile'
 import streamIntoFile from './streamIntoFile'
 import fs from 'fs'
 
 /**
- * Copy a file, and copy it again anytime it changes.
+ * Copy a file, and copy it again anytime it changes. Returns a stream of
+ * promises, provided everytime a new update is done. The promise is rejected
+ * if the update didn't happen correctly.
  */
 export default function updateCopy(sourcePath, destPath) {
 
-  let events = new EventEmitter()
+  let stream = new Readable({objectMode: true})
+  stream._read = () => {}
   let sourceStream = streamFromFile(sourcePath)
 
   sourceStream.pipe(streamIntoCallback(sourceStream => {
-    events.emit('change', sourcePath)
-    sourceStream.on('error', error => {
-      events.emit('error', errorFrom(error, 'source'))
-    })
+    stream.emit('change', sourcePath)
   }))
 
   sourceStream.pipe(streamIntoFile(destPath)).pipe(
     streamIntoCallback(fsStream => {
-      events.emit('start')
-      fsStream.on('error', error => {
-        events.emit('error', errorFrom(error, 'destination'))
-      })
-      fsStream.on('finish', () => events.emit('finish'))
+      stream.push(new Promise((resolve, reject) => {
+        fsStream.on('error', error => {
+          reject(error)
+        })
+        fsStream.on('finish', resolve)
+      }))
     })
   )
 
-  events.close = () => {
+  stream.close = () => {
     sourceStream.close()
   }
 
-  return events
+  return stream
 
 }
 
