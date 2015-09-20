@@ -16,8 +16,9 @@ export default function updateJavascriptAndStyle(
   entryPath,
   jsDestPath,
   cssDestPath,
+  transforms,
   watchFile,
-  transforms
+  createWriteStream
 ) {
 
   let stream = new Readable({objectMode: true})
@@ -31,8 +32,8 @@ export default function updateJavascriptAndStyle(
 
   return [
     mixedStream,
-    jsStream.pipe(streamIntoFile(jsDestPath)),
-    cssStream.pipe(streamIntoFile(cssDestPath)),
+    jsStream.pipe(streamIntoFile(jsDestPath, createWriteStream)),
+    cssStream.pipe(streamIntoFile(cssDestPath, createWriteStream)),
   ]
 
 }

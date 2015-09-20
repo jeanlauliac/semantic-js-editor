@@ -6,7 +6,7 @@ import {Transform} from 'stream'
  * `filePath`. Promises can then read from the stream signaling the result of
  * the write for each file.
  */
-export default function streamIntoFile(filePath) {
+export default function streamIntoFile(filePath, createWriteStream) {
 
   let stream = new Transform({objectMode: true})
   let prev
@@ -15,7 +15,7 @@ export default function streamIntoFile(filePath) {
       prev.inbound.unpipe(prev.file)
       prev.file.end()
     }
-    let fileStream = fs.createWriteStream(filePath)
+    let fileStream = createWriteStream(filePath)
     inboundStream.on('error', error => {
       let outError = new Error(`Failed to update ${filePath}`)
       outError.cause = error

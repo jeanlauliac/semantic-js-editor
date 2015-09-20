@@ -177,17 +177,17 @@ function buildJS(opts, updateStatus, log) {
     './' + path.join(Folders.WWW, 'index.js'),
     jsBundlePath,
     cssBundlePath,
-    watchFile.bind(null, log),
     [
       lintify.bind(undefined, log),
       babelify.configure({optional: ['es7.objectRestSpread']})
-    ]
+    ],
+    watchFile.bind(null, log),
+    createWriteStream.bind(null, log)
   )
   mergePromiseStreams([jsStream, cssStream]).pipe(
     streamIntoCallback(result => {
       updateStatus('start')
       result.then(() => {
-        log(`Wrote ${clc.blue(jsBundlePath)}`)
         updateStatus('finish')
         if (opts.once) {
           mixedStream.close()
@@ -204,11 +204,11 @@ function buildJS(opts, updateStatus, log) {
 function copyHtml(opts, updateStatus, log) {
   let sourcePath = path.join(Folders.WWW, 'index.html')
   let destPath = path.join(Folders.OUTPUT, 'index.html')
-  let stream = updateCopy(sourcePath, destPath, watchFile.bind(null, log))
+  let stream = updateCopy(sourcePath, destPath,
+    watchFile.bind(null, log), createWriteStream.bind(null, log))
   stream.pipe(streamIntoCallback(result => {
       updateStatus('start')
       result.then(() => {
-        log(`Wrote ${clc.blue(destPath)}`)
         updateStatus('finish')
         if (opts.once) {
           stream.close()
@@ -246,6 +246,14 @@ function watchFile(log, filePath, opts) {
     log('Changed: ' + clc.green(localPath))
   })
   return fileWatcher;
+}
+
+function createWriteStream(log, filePath) {
+  let stream = fs.createWriteStream(filePath)
+  stream.on('finish', () => {
+    log(`Wrote ${clc.blue(filePath)}`)
+  })
+  return stream
 }
 
 main()
