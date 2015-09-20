@@ -1,16 +1,15 @@
 import {Readable} from 'stream'
-import chokidar from 'chokidar'
 
 /**
  * Returns a readable stream of stream objects. A new stream is pushed every
  * time the file changes.
  */
-export default function streamFromFile(filePath) {
+export default function streamFromFile(filePath, watchFile) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
 
-  let watcher = chokidar.watch(filePath, {persistent: true})
+  let watcher = watchFile(filePath, {persistent: true})
   watcher.on('change', () => {
     pushStream()
   })

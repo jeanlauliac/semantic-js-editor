@@ -1,4 +1,5 @@
 import {Readable} from 'stream'
+import chokidar from 'chokidar'
 import browserify from 'browserify'
 import watchify from 'watchify'
 
@@ -16,7 +17,7 @@ let WATCHIFY_OPTS = {
  *
  * The stream also emits the `change(filePaths)` event to explicit what changed.
  */
-export default function streamBrowserify(opts, setupFn) {
+export default function streamBrowserify(opts, watchFile, setupFn) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
@@ -28,8 +29,10 @@ export default function streamBrowserify(opts, setupFn) {
   setupFn(bundler)
 
   let watcher = watchify(bundler)
+  // Monkey patch the watcher to catch change events. May break when updating
+  // watchify.
+  watcher._watcher = watchFile
   watcher.on('update', paths => {
-    stream.emit('change', paths)
     bundle()
   })
   process.nextTick(bundle)

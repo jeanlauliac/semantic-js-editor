@@ -6,6 +6,7 @@ import StatusLogger from './update/StatusLogger'
 import StyleExtractor from './update/StyleExtractor'
 import babelify from 'babelify'
 import browserify from 'browserify'
+import chokidar from 'chokidar'
 import clc from 'cli-color'
 import http from 'http'
 import fs from 'fs'
@@ -175,16 +176,12 @@ function buildJS(opts, updateStatus, log) {
     './' + path.join(Folders.WWW, 'index.js'),
     jsBundlePath,
     cssBundlePath,
+    watchFile.bind(null, log),
     [
       lintify.bind(undefined, log),
       babelify.configure({optional: ['es7.objectRestSpread']})
     ]
   )
-    .on('change', paths => {
-      log('Changed: ' + paths.map(
-        filePath => clc.green(path.relative('.', filePath))
-      ).join(', '))
-    })
     .pipe(streamIntoCallback(result => {
       updateStatus('start')
       result.then(() => {
@@ -205,9 +202,7 @@ function buildJS(opts, updateStatus, log) {
 function copyHtml(opts, updateStatus, log) {
   let sourcePath = path.join(Folders.WWW, 'index.html')
   let destPath = path.join(Folders.OUTPUT, 'index.html')
-  let stream =
-    updateCopy(sourcePath, destPath)
-      .on('change', () => log('Changed: ' + clc.green(sourcePath)))
+  let stream = updateCopy(sourcePath, destPath, watchFile.bind(null, log))
   stream.pipe(streamIntoCallback(result => {
       updateStatus('start')
       result.then(() => {
@@ -240,6 +235,15 @@ function serve(rootPath, opts, log) {
   }).listen(opts.port).on('listening', () => {
     log(`Listening on port ${clc.magenta(opts.port)}`)
   })
+}
+
+function watchFile(log, filePath, opts) {
+  let fileWatcher = chokidar.watch(filePath, opts)
+  let localPath = path.relative('.', filePath)
+  fileWatcher.on('change', () => {
+    log('Changed: ' + clc.green(localPath))
+  })
+  return fileWatcher;
 }
 
 main()

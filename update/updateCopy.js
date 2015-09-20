@@ -10,15 +10,11 @@ import fs from 'fs'
  * promises, provided everytime a new update is done. The promise is rejected
  * if the update didn't happen correctly.
  */
-export default function updateCopy(sourcePath, destPath) {
+export default function updateCopy(sourcePath, destPath, watchFile) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
-  let sourceStream = streamFromFile(sourcePath)
-
-  sourceStream.pipe(streamIntoCallback(sourceStream => {
-    stream.emit('change', sourcePath)
-  }))
+  let sourceStream = streamFromFile(sourcePath, watchFile)
 
   sourceStream.pipe(streamIntoFile(destPath)).pipe(
     streamIntoCallback(fsStream => {

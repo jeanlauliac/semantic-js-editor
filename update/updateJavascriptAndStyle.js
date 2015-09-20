@@ -14,21 +14,20 @@ export default function updateJavascriptAndStyle(
   entryPath,
   jsDestPath,
   cssDestPath,
+  watchFile,
   transforms
 ) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
 
-  let bot = streamStylify(BrowserifyOpts, bundler => {
+  let bot = streamStylify(BrowserifyOpts, watchFile, bundler => {
     transforms.forEach(transform => bundler.transform(transform))
     bundler.require(entryPath, {entry: true})
+  }).on('readable', () => {
+    update(bot.read())
+    bot.read(0)
   })
-    .on('change', paths => stream.emit('change', paths))
-    .on('readable', () => {
-      update(bot.read())
-      bot.read(0)
-    })
 
   function update([jsOutput, cssOutput]) {
     stream.push(new Promise((resolve, reject) => {
