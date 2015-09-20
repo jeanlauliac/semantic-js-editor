@@ -34,6 +34,10 @@ export default function mergePromiseStreams(promiseStreams) {
             batchNextPromises()
           }
           let promise = promiseStream.read()
+          if (promise == null) {
+            promiseStream.removeListener('readable', onReadable)
+            return
+          }
           promise.then(finish.bind(null, null), finish)
         }
         promiseStream.on('readable', onReadable)

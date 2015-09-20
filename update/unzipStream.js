@@ -12,6 +12,12 @@ export default function unzipStream(tupleSize, tupleStream) {
   }
   tupleStream.on('readable', () => {
     let tuple = tupleStream.read()
+    if (tuple == null) {
+      for (let i = 0; i < tupleSize; ++i) {
+        streams[i].push(null)
+      }
+      return
+    }
     for (let i = 0; i < tupleSize; ++i) {
       streams[i].push(tuple[i])
     }

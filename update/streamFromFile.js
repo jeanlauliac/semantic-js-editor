@@ -4,20 +4,25 @@ import {Readable} from 'stream'
  * Returns a readable stream of stream objects. A new stream is pushed every
  * time the file changes.
  */
-export default function streamFromFile(filePath, watchFile) {
+export default function streamFromFile(filePath, watchFile, once) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
 
-  let watcher = watchFile(filePath, {persistent: true})
-  watcher.on('change', () => {
-    pushStream()
-  })
+  if (!once) {
+    let watcher = watchFile(filePath, {persistent: true})
+    watcher.on('change', () => {
+      pushStream()
+    })
+  }
   process.nextTick(pushStream)
 
   function pushStream() {
     let fileStream = fs.createReadStream(filePath)
     stream.push(fileStream)
+    if (once) {
+      stream.push(null)
+    }
   }
 
   stream.close = () => {

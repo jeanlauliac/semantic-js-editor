@@ -18,13 +18,14 @@ export default function updateJavascriptAndStyle(
   cssDestPath,
   transforms,
   watchFile,
-  createWriteStream
+  createWriteStream,
+  once
 ) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
 
-  let mixedStream = streamStylify(BrowserifyOpts, watchFile, bundler => {
+  let mixedStream = streamStylify(BrowserifyOpts, watchFile, once, bundler => {
     transforms.forEach(transform => bundler.transform(transform))
     bundler.require(entryPath, {entry: true})
   })

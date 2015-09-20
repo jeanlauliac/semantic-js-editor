@@ -132,10 +132,10 @@ function main() {
       if (event === 'start') {
         if (counter === 0) {
           sTime = moment()
-          sl.status(`Updating  ${progressString(10, phase)}`)
+          sl.status(`Updating  ${progressString(20, phase)}`)
           interval = setInterval(() => {
             ++phase
-            sl.status(`Updating  ${progressString(10, phase)}`)
+            sl.status(`Updating  ${progressString(20, phase)}`)
           }, 100)
         }
         ++counter
@@ -163,14 +163,14 @@ function main() {
       }
     }
   })()
-  buildJS(opts, updateStatus, log)
-  copyHtml(opts, updateStatus, log)
+  buildJS(opts, updateStatus, log, opts.once)
+  copyHtml(opts, updateStatus, log, opts.once)
   if (!opts.once) {
     serve(Folders.OUTPUT, opts, log)
   }
 }
 
-function buildJS(opts, updateStatus, log) {
+function buildJS(opts, updateStatus, log, once) {
   let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
   let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
   let [mixedStream, jsStream, cssStream] = updateJavascriptAndStyle(
@@ -182,7 +182,8 @@ function buildJS(opts, updateStatus, log) {
       babelify.configure({optional: ['es7.objectRestSpread']})
     ],
     watchFile.bind(null, log),
-    createWriteStream.bind(null, log)
+    createWriteStream.bind(null, log),
+    once
   )
   mergePromiseStreams([jsStream, cssStream]).pipe(
     streamIntoCallback(result => {
@@ -201,11 +202,11 @@ function buildJS(opts, updateStatus, log) {
   return mixedStream
 }
 
-function copyHtml(opts, updateStatus, log) {
+function copyHtml(opts, updateStatus, log, once) {
   let sourcePath = path.join(Folders.WWW, 'index.html')
   let destPath = path.join(Folders.OUTPUT, 'index.html')
   let stream = updateCopy(sourcePath, destPath,
-    watchFile.bind(null, log), createWriteStream.bind(null, log))
+    watchFile.bind(null, log), createWriteStream.bind(null, log), once)
   stream.pipe(streamIntoCallback(result => {
       updateStatus('start')
       result.then(() => {
