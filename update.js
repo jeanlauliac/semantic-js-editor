@@ -185,7 +185,8 @@ function buildJS(opts, updateStatus, log, once) {
     createWriteStream.bind(null, log),
     once
   )
-  mergePromiseStreams([jsStream, cssStream]).pipe(
+  let merged = mergePromiseStreams([jsStream, cssStream])
+  merged.pipe(
     streamIntoCallback(result => {
       updateStatus('start')
       result.then(() => {
@@ -211,9 +212,6 @@ function copyHtml(opts, updateStatus, log, once) {
       updateStatus('start')
       result.then(() => {
         updateStatus('finish')
-        if (opts.once) {
-          stream.close()
-        }
       }, error => {
         while (error != null) {
           log(clc.red(error.message))

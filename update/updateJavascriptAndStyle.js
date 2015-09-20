@@ -29,6 +29,7 @@ export default function updateJavascriptAndStyle(
     transforms.forEach(transform => bundler.transform(transform))
     bundler.require(entryPath, {entry: true})
   })
+
   let [jsStream, cssStream] = unzipStream(2, mixedStream)
 
   return [

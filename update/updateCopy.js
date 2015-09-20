@@ -14,12 +14,13 @@ export default function updateCopy(
   sourcePath,
   destPath,
   watchFile,
-  createWriteStream
+  createWriteStream,
+  once
 ) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
-  let sourceStream = streamFromFile(sourcePath, watchFile)
+  let sourceStream = streamFromFile(sourcePath, watchFile, once)
 
   sourceStream.pipe(streamIntoFile(destPath, createWriteStream)).pipe(
     streamIntoCallback(result => {
