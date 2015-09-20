@@ -1,10 +1,10 @@
 import {Transform} from 'stream'
 
 /**
- * Returns a duplex stream of stream objects. Every time a buffer/string
- * stream is pushed through the outer stream, it is piped to an actual file
- * which path is specified with `filePath`. The file stream itself can be
- * then read from the stream (and listen to for errors, for instance).
+ * Returns a duplex stream. Every time a buffer/string stream is pushed through
+ * the outer stream, it is piped to an actual file which path is specified with
+ * `filePath`. Promises can then read from the stream signaling the result of
+ * the write for each file.
  */
 export default function streamIntoFile(filePath) {
 
@@ -26,7 +26,12 @@ export default function streamIntoFile(filePath) {
       prev = undefined
     })
     inboundStream.pipe(fileStream)
-    stream.push(fileStream)
+    stream.push(new Promise((resolve, reject) => {
+      fileStream.on('error', error => {
+        reject(error)
+      })
+      fileStream.on('finish', resolve)
+    }))
     prev = {inbound: inboundStream, file: fileStream}
     callback()
   }

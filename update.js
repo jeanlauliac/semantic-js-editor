@@ -172,7 +172,7 @@ function main() {
 function buildJS(opts, updateStatus, log) {
   let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
   let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
-  let stream = updateJavascriptAndStyle(
+  let [mixedStream, jsStream, cssStream] = updateJavascriptAndStyle(
     './' + path.join(Folders.WWW, 'index.js'),
     jsBundlePath,
     cssBundlePath,
@@ -182,21 +182,30 @@ function buildJS(opts, updateStatus, log) {
       babelify.configure({optional: ['es7.objectRestSpread']})
     ]
   )
-    .pipe(streamIntoCallback(result => {
-      updateStatus('start')
-      result.then(() => {
-        log(`Wrote ${clc.blue(jsBundlePath)}`)
-        log(`Wrote ${clc.blue(cssBundlePath)}`)
-        updateStatus('finish')
-        if (opts.once) {
-          stream.close()
-        }
-      }, error => {
-        logError(log, error)
-        updateStatus('error')
-      })
-    }))
-  return stream
+  jsStream.pipe(streamIntoCallback(result => {
+    updateStatus('start')
+    result.then(() => {
+      log(`Wrote ${clc.blue(jsBundlePath)}`)
+      updateStatus('finish')
+      if (opts.once) {
+        mixedStream.close()
+      }
+    }, error => {
+      logError(log, error)
+      updateStatus('error')
+    })
+  }))
+  cssStream.pipe(streamIntoCallback(result => {
+    updateStatus('start')
+    result.then(() => {
+      log(`Wrote ${clc.blue(cssBundlePath)}`)
+      updateStatus('finish')
+    }, error => {
+      logError(log, error)
+      updateStatus('error')
+    })
+  }))
+  return mixedStream
 }
 
 function copyHtml(opts, updateStatus, log) {

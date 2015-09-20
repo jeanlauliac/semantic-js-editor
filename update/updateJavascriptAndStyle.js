@@ -3,7 +3,9 @@ import {PassThrough} from 'stream'
 import {Readable} from 'stream'
 import babelify from 'babelify'
 import browserify from 'browserify'
+import streamIntoFile from './streamIntoFile'
 import streamStylify from './streamStylify'
+import unzipStream from './unzipStream'
 
 var BrowserifyOpts = {
   debug: false,
@@ -21,37 +23,16 @@ export default function updateJavascriptAndStyle(
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
 
-  let bot = streamStylify(BrowserifyOpts, watchFile, bundler => {
+  let mixedStream = streamStylify(BrowserifyOpts, watchFile, bundler => {
     transforms.forEach(transform => bundler.transform(transform))
     bundler.require(entryPath, {entry: true})
-  }).on('readable', () => {
-    update(bot.read())
-    bot.read(0)
   })
+  let [jsStream, cssStream] = unzipStream(2, mixedStream)
 
-  function update([jsOutput, cssOutput]) {
-    stream.push(new Promise((resolve, reject) => {
-      jsOutput.on('error', error => reject(error))
-      cssOutput.on('error', error => reject(error))
-      waitStreams([
-        jsOutput.pipe(fs.createWriteStream(jsDestPath)),
-        cssOutput.pipe(fs.createWriteStream(cssDestPath)),
-      ]).then(() => resolve())
-    }))
-  }
+  return [
+    mixedStream,
+    jsStream.pipe(streamIntoFile(jsDestPath)),
+    cssStream.pipe(streamIntoFile(cssDestPath)),
+  ]
 
-  stream.close = bot.close.bind(bot)
-
-  return stream
-
-}
-
-function waitStreams(streams) {
-  return Promise.all(streams.map(stream => {
-    return new Promise((resolve, reject) => {
-      stream
-        .on('finish', () => resolve())
-        .on('error', error => reject(error))
-    })
-  }))
 }

@@ -17,13 +17,8 @@ export default function updateCopy(sourcePath, destPath, watchFile) {
   let sourceStream = streamFromFile(sourcePath, watchFile)
 
   sourceStream.pipe(streamIntoFile(destPath)).pipe(
-    streamIntoCallback(fsStream => {
-      stream.push(new Promise((resolve, reject) => {
-        fsStream.on('error', error => {
-          reject(error)
-        })
-        fsStream.on('finish', resolve)
-      }))
+    streamIntoCallback(result => {
+      stream.push(result)
     })
   )
 
@@ -33,11 +28,4 @@ export default function updateCopy(sourcePath, destPath, watchFile) {
 
   return stream
 
-}
-
-function errorFrom(error, origin) {
-  let outerError = new Error(error.message)
-  outerError.inner = error
-  outerError.origin = origin
-  return outerError
 }
