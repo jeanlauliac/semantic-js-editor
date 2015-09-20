@@ -2,7 +2,6 @@
 
 import Emitter from './update/Emitter'
 import EslintPluginReact from 'eslint-plugin-react'
-import JavascriptBot from './update/JavascriptBot'
 import StatusLogger from './update/StatusLogger'
 import StyleExtractor from './update/StyleExtractor'
 import babelify from 'babelify'
@@ -22,6 +21,7 @@ import progressString from './update/progressString'
 import streamIntoCallback from './update/streamIntoCallback'
 import through from 'through2'
 import updateCopy from './update/updateCopy'
+import updateJavascriptAndStyle from './update/updateJavascriptAndStyle'
 import watchify from 'watchify'
 
 var Folders = {
@@ -171,7 +171,7 @@ function main() {
 function buildJS(opts, updateStatus, log) {
   let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
   let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
-  let bot = new JavascriptBot(
+  let stream = updateJavascriptAndStyle(
     './' + path.join(Folders.WWW, 'index.js'),
     jsBundlePath,
     cssBundlePath,
@@ -180,25 +180,26 @@ function buildJS(opts, updateStatus, log) {
       babelify.configure({optional: ['es7.objectRestSpread']})
     ]
   )
-    .on('start', () => updateStatus('start'))
     .on('change', paths => {
       log('Changed: ' + paths.map(
         filePath => clc.green(path.relative('.', filePath))
       ).join(', '))
     })
-    .on('error', error => {
-      logError(log, error)
-      updateStatus('error')
-    })
-    .on('finish', () => {
-      log(`Wrote ${clc.blue(jsBundlePath)}`)
-      log(`Wrote ${clc.blue(cssBundlePath)}`)
-      updateStatus('finish')
-      if (opts.once) {
-        bot.close()
-      }
-    })
-  return bot
+    .pipe(streamIntoCallback(result => {
+      updateStatus('start')
+      result.then(() => {
+        log(`Wrote ${clc.blue(jsBundlePath)}`)
+        log(`Wrote ${clc.blue(cssBundlePath)}`)
+        updateStatus('finish')
+        if (opts.once) {
+          stream.close()
+        }
+      }, error => {
+        logError(log, error)
+        updateStatus('error')
+      })
+    }))
+  return stream
 }
 
 function copyHtml(opts, updateStatus, log) {
