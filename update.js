@@ -13,6 +13,7 @@ import fs from 'fs'
 import invariant from './lib/utils/invariant'
 import {linter as ESLint} from 'eslint'
 import linterRules from 'eslint/lib/rules'
+import mergePromiseStreams from './update/mergePromiseStreams'
 import mkdirp from 'mkdirp'
 import moment from 'moment'
 import nodeStatic from 'node-static'
@@ -182,29 +183,21 @@ function buildJS(opts, updateStatus, log) {
       babelify.configure({optional: ['es7.objectRestSpread']})
     ]
   )
-  jsStream.pipe(streamIntoCallback(result => {
-    updateStatus('start')
-    result.then(() => {
-      log(`Wrote ${clc.blue(jsBundlePath)}`)
-      updateStatus('finish')
-      if (opts.once) {
-        mixedStream.close()
-      }
-    }, error => {
-      logError(log, error)
-      updateStatus('error')
+  mergePromiseStreams([jsStream, cssStream]).pipe(
+    streamIntoCallback(result => {
+      updateStatus('start')
+      result.then(() => {
+        log(`Wrote ${clc.blue(jsBundlePath)}`)
+        updateStatus('finish')
+        if (opts.once) {
+          mixedStream.close()
+        }
+      }, error => {
+        logError(log, error)
+        updateStatus('error')
+      })
     })
-  }))
-  cssStream.pipe(streamIntoCallback(result => {
-    updateStatus('start')
-    result.then(() => {
-      log(`Wrote ${clc.blue(cssBundlePath)}`)
-      updateStatus('finish')
-    }, error => {
-      logError(log, error)
-      updateStatus('error')
-    })
-  }))
+  )
   return mixedStream
 }
 

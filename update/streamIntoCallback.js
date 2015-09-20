@@ -5,13 +5,10 @@ import {Writable} from 'stream'
  * `callback(stream)` is called.
  */
 export default function streamIntoCallback(callback) {
-
   let stream = new Writable({objectMode: true})
   stream._write = (inboundStream, _, writeCallback) => {
     callback(inboundStream)
     writeCallback()
   }
-
   return stream
-
 }
