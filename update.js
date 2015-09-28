@@ -1,4 +1,4 @@
-#!/usr/bin/env node_modules/.bin/babel-node
+#!/usr/bin/env node_modules/.bin/babel-node --stage 1
 
 import Emitter from './update/Emitter'
 import EslintPluginReact from 'eslint-plugin-react'
@@ -191,9 +191,6 @@ function buildJS(opts, updateStatus, log, once) {
       updateStatus('start')
       result.then(() => {
         updateStatus('finish')
-        if (opts.once) {
-          mixedStream.close()
-        }
       }, error => {
         logError(log, error)
         updateStatus('error')
