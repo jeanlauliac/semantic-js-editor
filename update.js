@@ -163,17 +163,28 @@ function main() {
       }
     }
   })()
-  buildJS(opts, updateStatus, log, opts.once)
-  copyHtml(opts, updateStatus, log, opts.once)
+  const jsStream = buildJS(opts, log, opts.once)
+  const htmlStream = copyHtml(opts, updateStatus, log, opts.once)
+  mergePromiseStreams([jsStream, htmlStream]).pipe(
+    streamIntoCallback(result => {
+      updateStatus('start')
+      result.then(() => {
+        updateStatus('finish')
+      }, error => {
+        logError(log, error)
+        updateStatus('error')
+      })
+    })
+  )
   if (!opts.once) {
     serve(Folders.OUTPUT, opts, log)
   }
 }
 
-function buildJS(opts, updateStatus, log, once) {
+function buildJS(opts, log, once) {
   let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
   let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
-  let [mixedStream, jsStream, cssStream] = updateJavascriptAndStyle(
+  let [jsStream, cssStream] = updateJavascriptAndStyle(
     './' + path.join(Folders.WWW, 'index.js'),
     jsBundlePath,
     cssBundlePath,
@@ -185,39 +196,14 @@ function buildJS(opts, updateStatus, log, once) {
     createWriteStream.bind(null, log),
     once
   )
-  let merged = mergePromiseStreams([jsStream, cssStream])
-  merged.pipe(
-    streamIntoCallback(result => {
-      updateStatus('start')
-      result.then(() => {
-        updateStatus('finish')
-      }, error => {
-        logError(log, error)
-        updateStatus('error')
-      })
-    })
-  )
-  return mixedStream
+  return mergePromiseStreams([jsStream, cssStream])
 }
 
 function copyHtml(opts, updateStatus, log, once) {
-  let sourcePath = path.join(Folders.WWW, 'index.html')
-  let destPath = path.join(Folders.OUTPUT, 'index.html')
-  let stream = updateCopy(sourcePath, destPath,
+  const sourcePath = path.join(Folders.WWW, 'index.html')
+  const destPath = path.join(Folders.OUTPUT, 'index.html')
+  return updateCopy(sourcePath, destPath,
     watchFile.bind(null, log), createWriteStream.bind(null, log), once)
-  stream.pipe(streamIntoCallback(result => {
-      updateStatus('start')
-      result.then(() => {
-        updateStatus('finish')
-      }, error => {
-        while (error != null) {
-          log(clc.red(error.message))
-          error = error.inner
-        }
-        updateStatus('error')
-      })
-    }))
-  return stream
 }
 
 function logError(log, error) {

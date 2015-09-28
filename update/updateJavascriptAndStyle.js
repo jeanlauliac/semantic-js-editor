@@ -33,7 +33,6 @@ export default function updateJavascriptAndStyle(
   let [jsStream, cssStream] = unzipStream(2, mixedStream)
 
   return [
-    mixedStream,
     jsStream.pipe(streamIntoFile(jsDestPath, createWriteStream)),
     cssStream.pipe(streamIntoFile(cssDestPath, createWriteStream)),
   ]
