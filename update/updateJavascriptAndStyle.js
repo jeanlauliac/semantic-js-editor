@@ -13,19 +13,17 @@ var BrowserifyOpts = {
 }
 
 export default function updateJavascriptAndStyle(
+  update,
   entryPath,
   jsDestPath,
   cssDestPath,
   transforms,
-  watchFile,
-  createWriteStream,
-  once
 ) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
 
-  let mixedStream = streamStylify(BrowserifyOpts, watchFile, once, bundler => {
+  let mixedStream = streamStylify(update.fs, BrowserifyOpts, bundler => {
     transforms.forEach(transform => bundler.transform(transform))
     bundler.require(entryPath, {entry: true})
   })
@@ -33,8 +31,8 @@ export default function updateJavascriptAndStyle(
   let [jsStream, cssStream] = unzipStream(2, mixedStream)
 
   return [
-    jsStream.pipe(streamIntoFile(jsDestPath, createWriteStream)),
-    cssStream.pipe(streamIntoFile(cssDestPath, createWriteStream)),
+    jsStream.pipe(update.intoFile(jsDestPath)),
+    cssStream.pipe(update.intoFile(cssDestPath)),
   ]
 
 }

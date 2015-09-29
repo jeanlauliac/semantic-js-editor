@@ -4,7 +4,7 @@ import {Readable} from 'stream'
  * Returns a readable stream of stream objects. A new stream is pushed every
  * time the file changes.
  */
-export default function streamFromFile(filePath, watchFile, once) {
+export default function streamFromFile(watchFile, once, filePath) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}

@@ -1,4 +1,6 @@
 import {Transform} from 'stream'
+import mkdirp from 'mkdirp'
+import path from 'path'
 
 /**
  * Returns a duplex stream. Every time a buffer/string stream is pushed through
@@ -6,7 +8,9 @@ import {Transform} from 'stream'
  * `filePath`. Promises can then read from the stream signaling the result of
  * the write for each file.
  */
-export default function streamIntoFile(filePath, createWriteStream) {
+export default function streamIntoFile(createWriteStream, filePath) {
+
+  mkdirp.sync(path.dirname(filePath))
 
   let stream = new Transform({objectMode: true})
   let prev

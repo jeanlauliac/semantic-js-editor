@@ -17,7 +17,7 @@ let WATCHIFY_OPTS = {
  *
  * The stream also emits the `change(filePaths)` event to explicit what changed.
  */
-export default function streamBrowserify(opts, watchFile, once, setupFn) {
+export default function streamBrowserify(fs, opts, setupFn) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
@@ -29,11 +29,11 @@ export default function streamBrowserify(opts, watchFile, once, setupFn) {
   setupFn(bundler)
 
   let watcher
-  if (!once) {
+  if (!fs.once) {
     watcher = watchify(bundler)
     // Monkey patch the watcher to catch change events. May break when updating
     // watchify.
-    watcher._watcher = watchFile
+    watcher._watcher = fs.watchFile
     watcher.on('update', paths => {
       bundle()
     })
@@ -48,7 +48,7 @@ export default function streamBrowserify(opts, watchFile, once, setupFn) {
    */
   function bundle() {
     stream.push(watcher.bundle())
-    if (once) {
+    if (fs.once) {
       stream.push(null)
     }
   }

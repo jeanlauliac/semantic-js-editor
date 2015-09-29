@@ -2,36 +2,31 @@
 
 import Emitter from './update/Emitter'
 import EslintPluginReact from 'eslint-plugin-react'
-import StatusLogger from './update/StatusLogger'
 import StyleExtractor from './update/StyleExtractor'
 import babelify from 'babelify'
 import browserify from 'browserify'
-import chokidar from 'chokidar'
 import clc from 'cli-color'
-import http from 'http'
 import fs from 'fs'
 import invariant from './lib/utils/invariant'
 import {linter as ESLint} from 'eslint'
 import linterRules from 'eslint/lib/rules'
 import mergePromiseStreams from './update/mergePromiseStreams'
-import mkdirp from 'mkdirp'
-import moment from 'moment'
-import nodeStatic from 'node-static'
-import nopt from 'nopt'
 import padText from './update/padText'
 import path from 'path'
 import progressString from './update/progressString'
+import startCLI from './update/startCLI'
 import streamIntoCallback from './update/streamIntoCallback'
 import streamIntoStatusLogger from './update/streamIntoStatusLogger'
 import through from 'through2'
-import updateCopy from './update/updateCopy'
 import updateJavascriptAndStyle from './update/updateJavascriptAndStyle'
-import watchify from 'watchify'
 
 var Folders = {
   OUTPUT: 'output',
   WWW: 'www',
 }
+
+const www = filePath => path.join(Folders.WWW, filePath)
+const output = filePath => path.join(Folders.OUTPUT, filePath)
 
 var LintRules = {
   ecmaFeatures: {
@@ -108,79 +103,26 @@ function lintify(log, filePath) {
   })
 }
 
-function main() {
-  let opts = nopt({once: Boolean, port: Number})
-  opts.port = opts.port || 8080
-  mkdirp.sync(Folders.OUTPUT)
-  const statusLogger = new StatusLogger(process.stderr)
-  const log = message => {
-    let date = clc.blackBright(moment().format('HH:mm:ss'))
-    statusLogger.log(`${date}  ${message}`)
-  }
-  const jsStream = buildJS(opts, log, opts.once)
-  const htmlStream = copyHtml(opts, log, opts.once)
-  mergePromiseStreams([jsStream, htmlStream])
-    .pipe(streamIntoStatusLogger(statusLogger, log));
-  if (!opts.once) {
-    serve(Folders.OUTPUT, opts, log)
-  }
-}
-
-function buildJS(opts, log, once) {
-  let jsBundlePath = path.join(Folders.OUTPUT, 'bundle.js')
-  let cssBundlePath = path.join(Folders.OUTPUT, 'bundle.css')
+function updateJS(utils) {
   let [jsStream, cssStream] = updateJavascriptAndStyle(
+    utils,
     './' + path.join(Folders.WWW, 'index.js'),
-    jsBundlePath,
-    cssBundlePath,
+    path.join(Folders.OUTPUT, 'bundle.js'),
+    path.join(Folders.OUTPUT, 'bundle.css'),
     [
-      lintify.bind(undefined, log),
+      lintify.bind(undefined, utils.log),
       babelify.configure({optional: ['es7.objectRestSpread']})
     ],
-    watchFile.bind(null, log),
-    createWriteStream.bind(null, log),
-    once
   )
   return mergePromiseStreams([jsStream, cssStream])
 }
 
-function copyHtml(opts, log, once) {
-  const sourcePath = path.join(Folders.WWW, 'index.html')
-  const destPath = path.join(Folders.OUTPUT, 'index.html')
-  return updateCopy(sourcePath, destPath,
-    watchFile.bind(null, log), createWriteStream.bind(null, log), once)
-}
-
-function logError(log, error) {
-  log('*** ' + error.stack)
-}
-
-function serve(rootPath, opts, log) {
-  let server = new nodeStatic.Server(rootPath)
-  http.createServer((request, response) => {
-    request.on('end', () => {
-      server.serve(request, response)
-    }).resume()
-  }).listen(opts.port).on('listening', () => {
-    log(`Listening on port ${clc.magenta(opts.port)}`)
-  })
-}
-
-function watchFile(log, filePath, opts) {
-  let fileWatcher = chokidar.watch(filePath, opts)
-  let localPath = path.relative('.', filePath)
-  fileWatcher.on('change', () => {
-    log('Changed: ' + clc.green(localPath))
-  })
-  return fileWatcher;
-}
-
-function createWriteStream(log, filePath) {
-  let stream = fs.createWriteStream(filePath)
-  stream.on('finish', () => {
-    log(`Wrote ${clc.blue(filePath)}`)
-  })
-  return stream
-}
-
-main()
+startCLI({port: Number}, (update, {port}) => {
+  port = port || 8080
+  update.serveFiles(Folders.OUTPUT, port)
+  return update.all([
+    updateJS(update),
+    update.fromFile(www('index.html'))
+      .pipe(update.intoFile(output('index.html')))
+  ])
+})

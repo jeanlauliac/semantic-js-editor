@@ -9,13 +9,13 @@ import streamBrowserify from './streamBrowserify'
  * Returns a stream of pairs `[jsStream, cssStream]`, where `jsStream` is the
  * result of browserify and `cssStream` is the result of the stylify extractor.
  */
-export default function streamStylify(opts, watchFile, once, setupFn) {
+export default function streamStylify(fs, opts, setupFn) {
 
   let stream = new Readable({objectMode: true})
   stream._read = () => {}
 
   let styleExtractor = new StyleExtractor()
-  let browserifyStream = streamBrowserify(opts, watchFile, once, bundler => {
+  let browserifyStream = streamBrowserify(fs, opts, bundler => {
     setupFn(bundler)
     bundler.transform(styleExtractor.getTransform())
   })
